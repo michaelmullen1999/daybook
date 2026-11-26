@@ -1,0 +1,8 @@
+{
+  "appId": "uk.family.briandaybook",
+  "appName": "Daybook",
+  "webDir": "www",
+  "plugins": {
+    "LocalNotifications": { "iconColor": "#1f5fd1" }
+  }
+}

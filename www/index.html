@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daybook</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="gate" class="gate" hidden></div>
+
+<div id="app" hidden>
+<header>
+  <div><h1 id="greet">Hello, Brian</h1><div class="when" id="date"></div></div>
+  <div class="clock" id="clock"></div>
+</header>
+<nav><div>
+  <button data-tab="today" aria-current="true">Today</button>
+  <button data-tab="todo">To-do</button>
+  <button data-tab="appts"><span class="l">Appointments</span><span class="s">Appts</span></button>
+  <button data-tab="hobbies">Hobbies</button>
+  <button data-tab="log">Log</button>
+  <button data-tab="settings"><span class="l">Settings</span><span class="s">More</span></button>
+</div></nav>
+
+<main>
+<div id="offline" class="banner" hidden>No internet right now. Anything you log is saved and will send when you're back online.</div>
+
+<section class="tab on" id="t-today">
+  <div class="next" id="next"></div>
+  <div class="tl" id="timeline" aria-label="Today's checks on a timeline"></div>
+  <div class="key"><span class="k1">Done</span><span class="k2">Due now</span><span class="k3">Missed</span><span>Later</span></div>
+  <div class="grid2">
+    <div>
+      <h2>Checks and pills</h2><div id="checks"></div>
+      <div class="row-btns"><button id="logOther">Log something else</button></div>
+      <h2>To-do</h2><div id="todoPreview"></div>
+    </div>
+    <div>
+      <h2>Coming up</h2><div id="soonAppts"></div>
+      <h2>Notes to self</h2><textarea id="notes" placeholder="Anything to remember today"></textarea>
+      <p class="small">Saves as you type. Only on this device.</p>
+    </div>
+  </div>
+</section>
+
+<section class="tab" id="t-todo">
+  <form class="addrow" id="todoForm"><input id="todoIn" placeholder="Add something to do" aria-label="New to-do"><button class="pri">Add</button></form>
+  <div id="todoList"></div>
+  <details id="doneWrap"><summary class="small" style="cursor:pointer;padding:10px 0" id="doneSum">Done</summary><div id="doneList"></div>
+    <div class="row-btns"><button id="clearDone">Clear done items</button></div></details>
+</section>
+
+<section class="tab" id="t-appts">
+  <p class="small">The family adds and changes these. You'll get a reminder the evening before and 2 hours before.</p>
+  <h2>Upcoming</h2><div id="apptList"></div>
+  <details><summary class="small" style="cursor:pointer;padding:10px 0">Past appointments</summary><div id="pastList"></div></details>
+</section>
+
+<section class="tab" id="t-hobbies">
+  <div class="row-btns"><button class="pri" id="addHob">Add hobby</button></div>
+  <div id="hobList"></div>
+</section>
+
+<section class="tab" id="t-log">
+  <div class="row-btns"><button id="copyLog">Copy last 14 days</button><span class="small" id="copyMsg" style="align-self:center"></span></div>
+  <div id="logList"></div>
+</section>
+
+<section class="tab" id="t-settings">
+  <h2>Reminders</h2>
+  <label class="todo" style="border:0;padding:0 0 8px"><span style="display:flex;align-items:center;gap:14px;font-size:20px"><input type="checkbox" id="remOn">Send reminders on this device</span></label>
+  <p class="small">Using the app on a phone and a tablet? Turn this off on one so you don't get every reminder twice.</p>
+  <p id="remStatus"></p>
+  <div class="row-btns"><button id="remFix" hidden>Allow on-time reminders</button><button id="remTest" hidden>Send a test reminder</button></div>
+  <h2>Who can see this</h2>
+  <p id="sharedWith"></p>
+  <p class="small">Check times are set by the family. Ask the family if they need changing.</p>
+  <h2>This device</h2>
+  <p class="small" id="who"></p>
+</section>
+</main>
+</div>
+
+<div class="ov" id="ov" role="dialog" aria-modal="true"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo">Undo</button></div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+# Brian's Daybook
+
+- **Brian's app:** an Android app for his tablet and phone. He logs blood sugar, insulin and pills, keeps a to-do list and his hobbies, and sees his appointments. It reminds him when things are due.
+- **Family page:** https://michaelmullen1999.github.io/daybook/
+  Deborah (iPad), Nicole and Levi (Windows) add appointments, set check times, add to-dos and see his log.
+
+Everything runs on Portland, Oregon time.
+
+---
+
+## Installing on Brian's tablet (Nicole)
+
+1. **Get the app.** Go to https://github.com/michaelmullen1999/daybook/actions, open the newest green ✓ run and download **Daybook-APK**. Unzip it to get `Daybook.apk`.
+2. **Put it on his tablet.** Email it to his Gmail or put it in Google Drive, then open it on the tablet.
+3. **Install.** Android asks to allow installs from this source. Allow it, then tap **Install**.
+4. **Open Daybook.** It shows a code like `K7Q-4MX`.
+5. **Connect it.** On your PC, open the family page, sign in with Google, go to **People**, type the code and click **Connect device**. The tablet opens the app by itself.
+6. **Turn on reminders.**
+   - When asked, allow notifications.
+   - In the app, go to **Settings → Allow on-time reminders**, and switch on **Alarms & reminders**.
+   - Tap **Send a test reminder**.
+7. **Stop the tablet putting it to sleep.** Go to **tablet Settings → Apps → Daybook → Battery → Unrestricted**. Samsung tablets need this most.
+
+**His phone:** do the same steps. Then, on one of the two devices, go to **Settings** (called **More** on a phone) and turn off "Send reminders on this device" so he doesn't get everything twice.
+
+## Family page
+
+- Open https://michaelmullen1999.github.io/daybook/ and tap **Sign in with Google**.
+- **Mick** (mickmullen1999@gmail.com) can always get in.
+- To add someone else, go to **People → Family who can use this page** and type their Gmail address.
+- **Deborah's iPad:** open the page in Safari, then tap **Share → Add to Home Screen** so it works like an app.
+
+## Updates
+
+Change anything on GitHub and it rebuilds by itself, in about 5 minutes. The family page updates on its own. For Brian's devices, download the new APK and install it over the old one. His data is kept.
+
+## Good to know
+
+- Brian's app tells him who can see his log, under **Settings → Who can see this**.
+- If his internet drops he can still log. It syncs when he's back online.
+- "Notes to self" stay on that one device.
+- The check times and warnings are only what you enter. Set them to match his doctor's advice.
+- Firebase project: `brian-daybook-8f784`, owned by mickmullen1999@gmail.com. Its free plan covers this easily.
+- Database rules are in `firestore.rules`. If you change them, paste them into Firebase → Firestore → Rules → Publish.

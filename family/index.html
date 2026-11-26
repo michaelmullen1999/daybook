@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Brian's Daybook: family</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="gate" class="gate" hidden></div>
+
+<div id="app" hidden>
+<header>
+  <div><h1>Brian's Daybook</h1><div class="when" id="date"></div></div>
+  <div class="clock" id="clock"></div>
+</header>
+<nav><div>
+  <button data-tab="overview" aria-current="true">Overview</button>
+  <button data-tab="appts"><span class="l">Appointments</span><span class="s">Appts</span></button>
+  <button data-tab="todo">To-do</button>
+  <button data-tab="checks">Checks</button>
+  <button data-tab="log">Log</button>
+  <button data-tab="hobbies">Hobbies</button>
+  <button data-tab="people">People</button>
+</div></nav>
+
+<main>
+<div id="problem" class="banner" hidden></div>
+
+<section class="tab on" id="t-overview">
+  <div class="next" id="ovNext"></div>
+  <div class="tl" id="timeline"></div>
+  <div class="key"><span class="k1">Done</span><span class="k2">Due now</span><span class="k3">Missed</span><span>Later</span></div>
+  <div class="grid2">
+    <div><h2>Today's checks</h2><div id="ovChecks"></div></div>
+    <div><h2>Coming up</h2><div id="ovAppts"></div>
+      <div class="row-btns"><button class="pri" data-tab="appts" data-add="1">Add appointment</button></div>
+      <h2>His to-do list</h2><div id="ovTodos"></div></div>
+  </div>
+</section>
+
+<section class="tab" id="t-appts">
+  <p class="small">Enter dates and times in Brian's time. His tablet reminds him the evening before (6 pm) and 2 hours before.</p>
+  <div class="row-btns"><button class="pri" id="addAppt">Add appointment</button></div>
+  <h2>Upcoming</h2><div id="apptList"></div>
+  <details><summary class="small" style="cursor:pointer;padding:10px 0">Past appointments</summary><div id="pastList"></div></details>
+</section>
+
+<section class="tab" id="t-todo">
+  <form class="addrow" id="todoForm"><input id="todoIn" placeholder="Add something to Brian's list" aria-label="New to-do"><button class="pri">Add</button></form>
+  <div id="todoList"></div>
+  <details><summary class="small" style="cursor:pointer;padding:10px 0" id="doneSum">Done</summary><div id="doneList"></div></details>
+</section>
+
+<section class="tab" id="t-checks">
+  <p class="small">What Brian checks or takes, and when (his time). Each one sends a reminder on his tablet. "Warn within" stops a double dose being logged without a warning.</p>
+  <div id="checkList"></div>
+  <div class="row-btns"><button class="pri" id="addCheck">Add a check</button><button id="seed" hidden>Start with blood sugar and insulin examples</button></div>
+  <h2>His name on the app</h2>
+  <div class="addrow"><input id="nameIn" aria-label="Brian's name on the app"><button id="nameSave">Save</button></div>
+</section>
+
+<section class="tab" id="t-log">
+  <div class="row-btns"><button id="copyLog">Copy last 14 days</button><span class="small" id="copyMsg" style="align-self:center"></span></div>
+  <p class="small">Times are Brian's time.</p>
+  <div id="logList"></div>
+</section>
+
+<section class="tab" id="t-hobbies">
+  <p class="small">Brian adds and updates these himself.</p>
+  <div id="hobList"></div>
+</section>
+
+<section class="tab" id="t-people">
+  <h2>Brian's devices</h2>
+  <p class="small">To connect his tablet or phone, open the Daybook app on it. It shows a code. Type the code here.</p>
+  <form id="devForm"><div class="two"><div><label class="small" for="devCode">Code</label><input id="devCode" placeholder="K7Q-4MX" autocomplete="off" autocapitalize="characters"></div>
+    <div><label class="small" for="devName">Name (optional)</label><input id="devName" placeholder="Brian's tablet"></div></div>
+    <div class="row-btns"><button class="pri">Connect device</button></div><p class="err" id="devMsg"></p></form>
+  <div id="devList"></div>
+  <h2>Family who can use this page</h2>
+  <p class="small">Add their Google (Gmail) address. They sign in with the Google button.</p>
+  <form class="addrow" id="famForm"><input id="famEmail" type="email" placeholder="name@gmail.com" aria-label="Email to add"><button class="pri">Add</button></form>
+  <p class="err" id="famMsg"></p>
+  <div id="famList"></div>
+</section>
+
+<section style="margin-top:40px">
+  <p class="small"><span id="who"></span> <button class="link" id="signOut">Sign out</button></p>
+</section>
+</main>
+</div>
+
+<div class="ov" id="ov" role="dialog" aria-modal="true"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo" hidden>Undo</button></div>
+<script src="app.js"></script>
+</body>
+</html>

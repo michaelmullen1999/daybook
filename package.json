@@ -1,0 +1,20 @@
+{
+  "name": "brian-daybook",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "android": "npm run build && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.3",
+    "@capacitor/core": "8.6.3",
+    "@capacitor/local-notifications": "8.3.1",
+    "@fontsource/atkinson-hyperlegible": "^5.3.0",
+    "firebase": "13.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.3",
+    "esbuild": "0.28.2"
+  }
+}
