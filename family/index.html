@@ -15,7 +15,8 @@
 <div id="app" hidden>
 <header>
   <div><h1>Brian's Daybook</h1><div class="when" id="date"></div></div>
-  <div class="clock" id="clock"></div>
+  <div><div class="clock" id="clock"></div>
+    <div class="seg small-seg" role="group" aria-label="Appearance" style="margin-top:10px"><button data-theme-set="auto">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div></div>
 </header>
 <nav><div>
   <button data-tab="overview" aria-current="true">Overview</button>
@@ -89,7 +90,6 @@
 </section>
 
 <section style="margin-top:40px">
-  <div class="seg" role="group" aria-label="Appearance"><button data-theme-set="auto">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div>
   <p class="small"><span id="who"></span> <button class="link" id="signOut">Sign out</button></p>
 </section>
 </main>

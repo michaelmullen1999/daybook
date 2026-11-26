@@ -110,3 +110,5 @@ td.tm{white-space:nowrap;width:5.5em}
 @media(max-width:600px){.tl-hours,.tl-row{grid-template-columns:6em minmax(0,1fr)}.appt{grid-template-columns:5.5em minmax(0,1fr)}.appt>button{grid-column:2;justify-self:start}.two{grid-template-columns:minmax(0,1fr)}}
 .love{text-align:center;color:var(--soft);font-size:17px;margin:44px 0 8px}
 .seg{display:inline-flex;border:2px solid var(--line);border-radius:14px;overflow:hidden}.seg button{border:0;border-radius:0;background:var(--bg);min-width:84px}.seg button[aria-pressed=true]{background:var(--blue);color:var(--bg)}
+.small-seg button{min-height:40px;min-width:64px;font-size:15px;padding:4px 10px}
+@media(max-width:600px){.clock small{text-align:left}}
