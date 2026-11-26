@@ -112,3 +112,4 @@ td.tm{white-space:nowrap;width:5.5em}
 .seg{display:inline-flex;border:2px solid var(--line);border-radius:14px;overflow:hidden}.seg button{border:0;border-radius:0;background:var(--bg);min-width:84px}.seg button[aria-pressed=true]{background:var(--blue);color:var(--bg)}
 .small-seg button{min-height:40px;min-width:64px;font-size:15px;padding:4px 10px}
 @media(max-width:600px){.clock small{text-align:left}}
+.update{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;font-size:18px}.update[hidden]{display:none}

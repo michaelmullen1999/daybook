@@ -56,6 +56,7 @@ jobs:
 
   site:
     name: Family page (website)
+    needs: apk   # publish the new APK first, so the "update ready" button never points at an old one
     runs-on: ubuntu-latest
     environment: { name: github-pages, url: "${{ steps.deploy.outputs.page_url }}" }
     steps:

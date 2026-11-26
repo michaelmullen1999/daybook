@@ -324,3 +324,34 @@ if (native) {
 
 /* ---------- clock ---------- */
 setInterval(() => { if (!sheet.isOpen()) renderAll(); else renderHeader(); }, 30000);
+
+/* ---------- app updates (installed app only) ---------- */
+const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
+const SITE = "https://michaelmullen1999.github.io/daybook/";
+const APK_URL = "https://github.com/michaelmullen1999/daybook/releases/latest/download/Daybook.apk";
+let lastCheck = 0;
+async function checkForUpdate(force) {
+  if (!native || APP_VERSION === "dev") { $("verText").textContent = `Version ${APP_VERSION}.`; return null; }
+  if (!force && Date.now() - lastCheck < 3600e3) return null;
+  lastCheck = Date.now();
+  try {
+    const r = await fetch(SITE + "version.json?t=" + Date.now(), { cache: "no-store" });
+    const { version } = await r.json();
+    const newer = version && version !== APP_VERSION;
+    $("update").hidden = !newer;
+    $("verText").textContent = newer ? `Version ${APP_VERSION}. A newer version (${version}) is ready.` : `Version ${APP_VERSION}. You have the latest.`;
+    return newer;
+  } catch { $("verText").textContent = `Version ${APP_VERSION}. Couldn't check for updates (no internet?).`; return null; }
+}
+$("updateBtn").addEventListener("click", () => {
+  $("updateMsg").textContent = "Opening the download. When it finishes, tap it, then tap Install.";
+  window.location.href = APK_URL; // Capacitor opens outside links in the device browser, which downloads the new app
+});
+$("checkUpd").addEventListener("click", async () => {
+  const n = await checkForUpdate(true);
+  if (n === false) toast("You have the latest version");
+  else if (n) toast("Update ready: see the banner at the top");
+});
+$("verText").textContent = `Version ${APP_VERSION}.`;
+setTimeout(() => checkForUpdate(true), 3000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(false); });

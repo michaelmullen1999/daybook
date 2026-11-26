@@ -7,7 +7,8 @@ import { resolve } from "node:path";
 
 const mock = process.argv.includes("--mock");
 const mockPlugin = { name: "mock", setup(b) { b.onResolve({ filter: /\/data\.js$/ }, a => ({ path: resolve(a.resolveDir, a.path.replace("data.js", "data-mock.js")) })); } };
-const opts = { bundle: true, minify: !mock, format: "iife", target: ["es2020", "chrome90", "safari15"], plugins: mock ? [mockPlugin] : [], logLevel: "warning" };
+const APP_VERSION = (process.env.GITHUB_SHA || "dev").slice(0, 7);
+const opts = { define: { __APP_VERSION__: JSON.stringify(APP_VERSION) }, bundle: true, minify: !mock, format: "iife", target: ["es2020", "chrome90", "safari15"], plugins: mock ? [mockPlugin] : [], logLevel: "warning" };
 
 // fonts (bundled so the app looks right offline)
 const fontDir = "node_modules/@fontsource/atkinson-hyperlegible/files";
@@ -24,6 +25,7 @@ await esbuild.build({ ...opts, entryPoints: ["src/family.js"], outfile: `${out}/
 cpSync("family/index.html", `${out}/index.html`);
 for (const f of ["style.css", "fonts.css", "fonts"]) cpSync(`www/${f}`, `${out}/${f}`, { recursive: true });
 writeFileSync(`${out}/.nojekyll`, "");
+writeFileSync(`${out}/version.json`, JSON.stringify({ version: APP_VERSION }));
 // cache-busting: make browsers load the newest files after each update
 const v = Date.now().toString(36);
 for (const p of [`${out}/index.html`, `${out}/me/index.html`]) {

@@ -33,7 +33,11 @@ Everything runs on Portland, Oregon time.
 
 ## Updates
 
-Change anything on GitHub and it rebuilds by itself, in about 5 minutes. The family page updates on its own. For Brian's devices, open the same install link again and install over the old app. His data is kept.
+Change anything on GitHub and it rebuilds by itself, in about 5 minutes.
+
+- **Appointments, checks and to-dos** reach his devices straight away. Nothing to install.
+- **The family page** updates on its own.
+- **App updates:** when his app opens, it checks for a newer version. If there is one, it shows **"An update to Daybook is ready"**. Tap **Install update**, wait for the download, tap it, then tap **Install**. His data is kept. You can also go to **Settings → Check for updates**.
 
 ## Good to know
 
