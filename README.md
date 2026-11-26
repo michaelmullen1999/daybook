@@ -10,9 +10,10 @@ Everything runs on Portland, Oregon time.
 
 ## Installing on Brian's tablet (Nicole)
 
-1. **Get the app.** Go to https://github.com/michaelmullen1999/daybook/actions, open the newest green ✓ run and download **Daybook-APK**. Unzip it to get `Daybook.apk`.
-2. **Put it on his tablet.** Email it to his Gmail or put it in Google Drive, then open it on the tablet.
-3. **Install.** Android asks to allow installs from this source. Allow it, then tap **Install**.
+1. **On his tablet, open this link** in Chrome. You can text or email it to him:
+   **https://github.com/michaelmullen1999/daybook/releases/latest/download/Daybook.apk**
+2. **Open the download.** Chrome might warn about the file type. Tap **Download anyway**, then open it.
+3. **Install.** Android asks to allow installs from Chrome. Allow it, then tap **Install**.
 4. **Open Daybook.** It shows a code like `K7Q-4MX`.
 5. **Connect it.** On your PC, open the family page, sign in with Google, go to **People**, type the code and click **Connect device**. The tablet opens the app by itself.
 6. **Turn on reminders.**
@@ -32,7 +33,7 @@ Everything runs on Portland, Oregon time.
 
 ## Updates
 
-Change anything on GitHub and it rebuilds by itself, in about 5 minutes. The family page updates on its own. For Brian's devices, download the new APK and install it over the old one. His data is kept.
+Change anything on GitHub and it rebuilds by itself, in about 5 minutes. The family page updates on its own. For Brian's devices, open the same install link again and install over the old app. His data is kept.
 
 ## Good to know
 
