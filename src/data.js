@@ -5,7 +5,8 @@ import { getAuth, onAuthStateChanged, signInAnonymously, signOut as fbSignOut, G
          setPersistence, indexedDBLocalPersistence, browserLocalPersistence } from "firebase/auth";
 import { initializeFirestore, persistentLocalCache, persistentSingleTabManager,
          collection, doc, setDoc, getDoc, deleteDoc, onSnapshot, query, where, orderBy } from "firebase/firestore";
-import { firebaseConfig } from "./config.js";
+import { firebaseConfig, VAPID_KEY } from "./config.js";
+import { getMessaging, getToken, deleteToken, isSupported } from "firebase/messaging";
 
 export const configured = !String(firebaseConfig.apiKey).includes("PASTE_HERE");
 let app, auth, db;
@@ -74,3 +75,20 @@ export const removeFamily = email => quiet(deleteDoc(doc(db, "family", email)));
 // Generic documents (notes, diary, care sheet)
 export const saveDoc = (col, obj) => quiet(put(col, obj));
 export const removeDoc = (col, id) => quiet(deleteDoc(doc(db, col, id)));
+
+// Reminders: register this device for push messages and remember it in Firestore
+export const pushReady = () => configured && !String(VAPID_KEY).includes("PASTE");
+export async function pushSupported() { try { return pushReady() && "serviceWorker" in navigator && "Notification" in window && "PushManager" in window && await isSupported(); } catch { return false; } }
+const sha = async s => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 40);
+export async function enablePush(info) {
+  const reg = await navigator.serviceWorker.register("sw.js"); await navigator.serviceWorker.ready;
+  const token = await getToken(getMessaging(app), { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+  if (!token) throw new Error("no token");
+  const id = await sha(token);
+  await setDoc(doc(db, "pushTokens", id), { token, ...info, updated: new Date().toISOString() });
+  return id;
+}
+export async function disablePush(id) {
+  try { await deleteToken(getMessaging(app)); } catch {}
+  if (id) await deleteDoc(doc(db, "pushTokens", id)).catch(() => {});
+}

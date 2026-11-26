@@ -6,7 +6,7 @@ themeSwitch();
 import { initCare } from "./care.js";
 import { pandaFace, pandaWave, pandaHeart, emptyPanda } from "./panda.js";
 
-const S = { settings: null, appts: [], logs: [], hobbies: [], todos: [], family: [], notes: [], care: [], diary: [] };
+const S = { settings: null, appts: [], logs: [], hobbies: [], todos: [], family: [], notes: [], care: [], diary: [], photos: [] };
 const sheet = makeSheet();
 const unsubs = [];
 let user = null;
@@ -38,7 +38,7 @@ D.onUser(u => {
     if (String(err.code).includes("permission")) return showNotAllowed();
     $("problem").textContent = "Can't reach the Daybook right now. Check your connection."; $("problem").hidden = false;
   };
-  ["settings", "appts", "logs", "todos", "family", "notes", "care", "diary"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; $("problem").hidden = true; if (!$("gate").hidden && n === "settings") { $("gate").hidden = true; $("gateExtras").hidden = true; $("app").hidden = false; } renderAll(); }, onErr)));
+  ["settings", "appts", "logs", "todos", "family", "notes", "care", "diary", "photos"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; $("problem").hidden = true; if (!$("gate").hidden && n === "settings") { $("gate").hidden = true; $("gateExtras").hidden = true; $("app").hidden = false; } renderAll(); }, onErr)));
   renderAll();
 });
 
@@ -52,7 +52,7 @@ const saveSettings = patch => D.saveSettings({ name: "Brian", checks: [], ...(S.
 let toastT, undoId = null;
 function toast(msg, logId) { $("toastMsg").textContent = msg; undoId = logId || null; $("toastUndo").hidden = !undoId; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => $("toast").classList.remove("on"), logId ? 9000 : 5000); }
 $("toastUndo").addEventListener("click", () => { if (undoId) D.deleteLog(undoId); $("toast").classList.remove("on"); });
-const C = initCare({ S, D, sheet, toast, me: () => me(), today: () => btk() });
+const C = initCare({ S, D, sheet, toast, me: () => me(), today: () => btk(), goTab: n => goTab(n) });
 
 /* ---------- render ---------- */
 function renderHeader() {
@@ -97,8 +97,46 @@ function renderToday() {
   $("ovAppts").innerHTML = up.length ? up.map(a => apptRow(a, tk, true)).join("") : emptyPanda("Nothing booked.");
   const open = S.todos.filter(t => !t.done).sort(todoSort);
   $("ovTodos").innerHTML = open.length ? open.slice(0, 5).map(t => todoRow(t, tk)).join("") + (open.length > 5 ? `<button class="link" data-tab="todo">See all ${open.length}</button>` : "") : emptyPanda("Nothing to do.");
-  C.renderTodayNotes(); C.renderTodayDiary();
+  C.renderTodayNotes(); C.renderTodayDiary(); C.renderTodayStock(); C.renderBackup();
 }
+
+/* ---------- reminders on this device ---------- */
+const pushId = () => { try { return localStorage.getItem("daybook-push") || ""; } catch { return ""; } };
+let pushOk = null;
+async function renderPush() {
+  const box = $("pushBox"); if (!box) return;
+  if (pushOk === null) { pushOk = await D.pushSupported(); }
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const perm = "Notification" in window ? Notification.permission : "unsupported";
+  const what = `<p class="small">You'll get: each pill, insulin and blood sugar time (and a second nudge if it isn't logged), appointments the evening before and 2 hours before, low medicine supply, and an 8 pm diary reminder. They can arrive a few minutes late.</p>`;
+  if (!D.pushReady()) box.innerHTML = `<p class="small">Reminders aren't switched on for Daybook yet.</p>`;
+  else if (iOS && !standalone) box.innerHTML = `<p>On iPad and iPhone, reminders only work in the home-screen app. Add Daybook to the home screen (see below), open it from there, then come back here.</p>`;
+  else if (!pushOk) box.innerHTML = `<p>This browser can't show reminders. Try Safari on iPad/iPhone (home-screen app), or Chrome or Edge on a PC.</p>`;
+  else if (perm === "denied") box.innerHTML = `<p>Notifications are blocked for Daybook. ${iOS ? "Go to <b>Settings → Notifications → Daybook</b> and allow them." : "Allow notifications for this site in the browser settings."}</p>`;
+  else if (pushId() && perm === "granted") box.innerHTML = `<p><b>Reminders are on for this device.</b></p>${what}<div class="row-btns"><button id="pushTest">Show a test reminder</button><button id="pushOff">Turn off on this device</button></div>`;
+  else box.innerHTML = `${what}<div class="row-btns"><button class="pri" id="pushOn">Turn on reminders</button></div>`;
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.id === "pushOn") {
+    b.disabled = true; b.textContent = "Turning on…";
+    try {
+      const p = await Notification.requestPermission();
+      if (p !== "granted") { toast("Reminders weren't allowed"); return renderPush(); }
+      const id = await D.enablePush({ email: user && user.email || "", name: me(), device: /iPad/.test(navigator.userAgent) ? "iPad" : /iPhone/.test(navigator.userAgent) ? "iPhone" : "Computer", created: new Date().toISOString() });
+      try { localStorage.setItem("daybook-push", id); } catch {}
+      toast("Reminders are on");
+    } catch (err) { console.error(err); toast("Couldn't turn on reminders. Try again."); }
+    renderPush();
+  } else if (b.id === "pushOff") {
+    await D.disablePush(pushId()); try { localStorage.removeItem("daybook-push"); } catch {}
+    toast("Reminders off on this device"); renderPush();
+  } else if (b.id === "pushTest") {
+    try { const reg = await navigator.serviceWorker.ready; await reg.showNotification("Daybook", { body: "Test reminder. This is how reminders will look.", icon: "icons/icon-192.png" }); }
+    catch { toast("Couldn't show a test reminder"); }
+  }
+});
 
 /* ---------- logging (Deborah logs for Brian) ---------- */
 function writeLog({ check, name, unit, value, note, time }) {
@@ -175,6 +213,8 @@ function apptRow(a, tk, edit) {
   return `<div class="appt"><div class="d">${p.short}<small>${p.day.slice(0, 3)}${a.time ? " · " + fmt12(a.time) : ""}</small></div>
   <div><div class="t">${esc(a.title)}${a.repeat ? `<span class="rep">${esc(repeatLabel(a.repeat, a.start || a.date))}</span>` : ""}</div><div class="s ${soon ? "soon" : ""}">${rel}</div>
   ${a.where ? `<div class="s">${esc(a.where)}</div>` : ""}${a.with ? `<div class="s">With ${esc(a.with)}</div>` : ""}${a.notes ? `<div class="s">${esc(a.notes)}</div>` : ""}
+  ${a.questions ? `<div class="s"><b>Questions:</b> ${esc(a.questions).replace(/\n/g, "; ")}</div>` : ""}
+  ${a.outcome ? `<div class="s"><b>Doctor said:</b> ${esc(a.outcome)}</div>` : ""}
   ${a.by ? `<div class="s">Added by ${esc(a.by)}</div>` : ""}</div>
   ${edit ? `<button data-eappt="${esc(a.id)}">Edit</button>` : ""}</div>`;
 }
@@ -229,6 +269,8 @@ function renderAll() {
   if ($("app").hidden) return;
   renderHeader(); renderToday(); renderAppts(); renderTodos(); renderChecks(); renderLog(); renderPeople();
   C.renderNotes(); C.renderDiary(); C.renderCare();
+  if ($("t-report").classList.contains("on") && !sheet.isOpen()) C.renderReport();
+  if ($("t-setup").classList.contains("on")) renderPush();
 }
 
 /* ---------- editors ---------- */
@@ -241,11 +283,13 @@ function apptSheet(id) {
    <label for="aR">Repeats</label><select id="aR">${REPEAT_OPTIONS(false, a.repeat)}</select>
    <label for="aW">Where</label><input id="aW" value="${esc(a.where)}">
    <label for="aWith">Going with</label><input id="aWith" list="fam" value="${esc(a.with)}"><datalist id="fam">${FAMILY.map(f => `<option value="${esc(f)}">`).join("")}</datalist>
-   <label for="aN">Notes for Brian</label><textarea id="aN" placeholder="Bring readings, fast from midnight…">${esc(a.notes)}</textarea>
+   <label for="aN">Notes</label><textarea id="aN" placeholder="Bring readings, fast from midnight…">${esc(a.notes)}</textarea>
+   <label for="aQ">Questions to ask</label><textarea id="aQ" placeholder="One per line">${esc(a.questions || "")}</textarea>
+   <label for="aO">What the doctor said (after the visit)</label><textarea id="aO" placeholder="Changes to medicines, tests booked, next visit…">${esc(a.outcome || "")}</textarea>
    <div class="acts">${id ? `<button data-act="delete">Delete</button>` : ""}<button data-act="cancel">Cancel</button><button class="pri" data-act="save">Save</button></div>`, mode => {
     if (mode === "delete") { D.deleteAppt(id); return toast("Appointment deleted"); }
     if (!val("aT") || !val("aD")) { sheet.msg("Add what it is and the date."); return false; }
-    D.saveAppt({ id: id || D.newId(), title: val("aT"), date: val("aD"), time: val("aH"), repeat: $("aR").value, where: val("aW"), with: val("aWith"), notes: val("aN"), by: a.by || me() });
+    D.saveAppt({ id: id || D.newId(), title: val("aT"), date: val("aD"), time: val("aH"), repeat: $("aR").value, where: val("aW"), with: val("aWith"), notes: val("aN"), questions: val("aQ"), outcome: val("aO"), by: a.by || me() });
     toast(id ? "Appointment updated" : "Appointment added");
   });
 }

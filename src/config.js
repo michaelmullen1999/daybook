@@ -22,3 +22,6 @@ export const OWNERS = ["mickmullen1999@gmail.com"];
 
 // Shown in Brian's Settings so he knows who can see his log.
 export const SHARED_WITH = "Deborah, Nicole and Levi can see your log. They add your appointments and set your check times.";
+
+// Public key for reminders (Firebase console > Project settings > Cloud Messaging > Web Push certificates).
+export const VAPID_KEY = "BDpeTaQmC97TplnO4tSlG84knhLnzMQueHzIvsV9xOYafndJiVq5IiuAMOlQNQxGE-SnaN8pjWLPD539ij2CsoQ";

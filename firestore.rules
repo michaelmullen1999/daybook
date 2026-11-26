@@ -22,6 +22,9 @@ service cloud.firestore {
     match /notes/{id}      { allow read, write: if isFamily(); }
     match /diary/{id}      { allow read, write: if isFamily(); }
     match /care/{id}       { allow read, write: if isFamily(); }
+    match /photos/{id}     { allow read, write: if isFamily(); }
+    // Each device's push address, for reminders. The reminder sender reads these with its own key.
+    match /pushTokens/{id} { allow read, write: if isFamily(); }
 
     match /family/{em}     { allow read, write: if isFamily(); }
     match /devices/{uid}   { allow read: if isFamily() || (request.auth != null && request.auth.uid == uid);

@@ -5,3 +5,5 @@ test/
 www/app.js
 www/fonts/
 www/fonts.css
+scripts/node_modules/
+scripts/package*.json

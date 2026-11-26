@@ -25,7 +25,7 @@
 <div id="app" hidden>
 <header>
   <div class="hello"><span id="hpanda"></span><div><h1 id="greet">Hello</h1><div class="when" id="date"></div></div></div>
-  <div><div class="clock" id="clock"></div>
+  <div class="hdr-right"><button class="emerg-btn" data-emergency="1">Emergency</button><div class="clock" id="clock"></div>
     <div class="seg small-seg hdr-seg" role="group" aria-label="Appearance" style="margin-top:10px"><button data-theme-set="auto">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div></div>
 </header>
 <nav><div>
@@ -44,6 +44,8 @@
 <div id="offline" class="banner" hidden>No internet right now. Anything you add is saved on this device and sends when you're back online.</div>
 
 <section class="tab on" id="t-today">
+  <div class="banner" id="ovStock" hidden></div>
+  <div class="banner" id="ovBackup" hidden>It's been a while since the last backup. <button class="link" data-tab="setup">Back up now</button></div>
   <div class="next" id="ovNext"></div>
   <div class="tl" id="timeline"></div>
   <div class="key"><span class="k1">Done</span><span class="k2">Due now</span><span class="k3">Missed</span><span>Later</span></div>
@@ -71,8 +73,11 @@
 </section>
 
 <section class="tab" id="t-notes">
+  <div class="searchbar"><input id="searchIn" type="search" placeholder="Search notes, diary, appointments, care info…" aria-label="Search"></div>
+  <div id="searchResults" hidden></div>
   <form id="noteForm" class="noteform"><textarea id="noteIn" placeholder="Write a note…" aria-label="New note" rows="2"></textarea>
-    <div class="row-btns"><button class="pri">Add note</button><label class="inline small"><input type="checkbox" id="notePin"> Pin to Today</label></div></form>
+    <div class="thumbs" id="notePhotos"></div>
+    <div class="row-btns"><button class="pri">Add note</button><label class="btnlike">Add photo<input type="file" id="notePhotoIn" accept="image/*" multiple hidden></label><label class="inline small"><input type="checkbox" id="notePin"> Pin to Today</label></div></form>
   <div class="notes" id="noteList"></div>
   <details><summary class="small" style="cursor:pointer;padding:10px 0" id="noteDoneSum">Done</summary><div class="notes" id="noteDone"></div></details>
 </section>
@@ -85,7 +90,7 @@
 </section>
 
 <section class="tab" id="t-care">
-  <div class="row-btns noprint"><button id="printCare">Print or share</button><span class="small" style="align-self:center">Everything a doctor, nurse or helper might need.</span></div>
+  <div class="row-btns noprint"><button id="printCare">Print or share</button><button data-report="1">Doctor report</button><span class="small" style="align-self:center">Everything a doctor, nurse or helper might need.</span></div>
   <div id="careSheet"></div>
 </section>
 
@@ -97,11 +102,18 @@
 
 <section class="tab" id="t-log">
   <div id="ovCharts"></div>
-  <div class="row-btns"><button id="copyLog">Copy last 14 days</button><span class="small" id="copyMsg" style="align-self:center"></span></div>
+  <div class="row-btns"><button class="pri" data-report="1">Doctor report</button><button id="copyLog">Copy last 14 days</button><span class="small" id="copyMsg" style="align-self:center"></span></div>
   <div id="logList"></div>
 </section>
 
+<section class="tab" id="t-report">
+  <div class="row-btns noprint"><button data-tab="log">Back</button><button class="pri" id="printReport">Print or share</button><button id="copyReport">Copy as text</button><span class="small" id="reportMsg" style="align-self:center"></span></div>
+  <div id="reportBody" class="report"></div>
+</section>
+
 <section class="tab" id="t-setup">
+  <h2>Reminders on this device</h2>
+  <div id="pushBox"></div>
   <h2>Pills, insulin and checks</h2>
   <p class="small">What Brian takes or checks, and when (Portland time). "Warn within" stops a dose being logged twice by mistake.</p>
   <div id="checkList"></div>
@@ -111,6 +123,9 @@
   <form class="addrow" id="famForm"><input id="famEmail" type="email" placeholder="name@gmail.com" aria-label="Email to add"><button class="pri">Add</button></form>
   <p class="err" id="famMsg"></p>
   <div id="famList"></div>
+  <h2>Backup</h2>
+  <p class="small">Saves everything (logs, notes, diary, care info, photos) to one file. Do it once a month and keep it in Files, iCloud or Google Drive.</p>
+  <div class="row-btns"><button class="pri" id="backupBtn">Download everything</button><span class="small" id="backupInfo" style="align-self:center"></span></div>
   <h2>Appearance</h2>
   <div class="seg" role="group" aria-label="Appearance"><button data-theme-set="auto">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div>
   <p class="small">Auto follows the iPad's own light or dark setting.</p>

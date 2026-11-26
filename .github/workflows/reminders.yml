@@ -1,0 +1,36 @@
+name: Send reminders
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 minutes (GitHub sometimes runs it a little late)
+  workflow_dispatch:
+
+permissions:
+  contents: write   # only for the keep-alive below
+
+concurrency:
+  group: reminders
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - name: Install the Firebase sender library
+        working-directory: scripts
+        run: npm init -y >/dev/null && npm install --no-audit --no-fund firebase-admin@14.5.1
+      - name: Send any reminders that are due
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+        run: node scripts/send-reminders.mjs
+      - name: Keep the schedule alive (GitHub pauses schedules after 60 quiet days)
+        run: |
+          last=$(git log -1 --format=%ct); now=$(date +%s)
+          if [ $((now - last)) -gt 3888000 ]; then
+            git config user.name "daybook-bot"; git config user.email "daybook-bot@users.noreply.github.com"
+            git commit --allow-empty -m "Keep reminders running" && git push
+          fi
