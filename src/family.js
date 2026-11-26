@@ -11,7 +11,7 @@ let user = null;
 const me = () => (user && user.displayName ? user.displayName.split(" ")[0] : (user && user.email ? user.email.split("@")[0] : "Family"));
 
 /* ---------- sign-in (Google) ---------- */
-function gate(html) { $("app").hidden = true; $("gate").hidden = false; $("gate").innerHTML = html; }
+function gate(html) { $("app").hidden = true; $("gate").hidden = false; $("gateExtras").hidden = false; $("gate").innerHTML = html; }
 function showSignIn() {
   if (!D.configured) return gate(`<h1>Not set up yet</h1><p>Add the Firebase details to <b>src/config.js</b>. See the README.</p>`);
   gate(`<h1>Brian's Daybook</h1><p>Family page. Sign in with your Google account.</p>
@@ -30,13 +30,13 @@ function showNotAllowed() {
 D.onUser(u => {
   user = u; unsubs.splice(0).forEach(f => f());
   if (!u || u.isAnonymous) return showSignIn();
-  $("gate").hidden = true; $("app").hidden = false;
+  $("gate").hidden = true; $("gateExtras").hidden = true; $("app").hidden = false;
   const onErr = err => {
     console.error(err);
     if (String(err.code).includes("permission")) return showNotAllowed();
     $("problem").textContent = "Can't reach the Daybook right now. Check your connection."; $("problem").hidden = false;
   };
-  ["settings", "appts", "logs", "hobbies", "todos", "devices", "family"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; $("problem").hidden = true; if (!$("gate").hidden && n === "settings") { $("gate").hidden = true; $("app").hidden = false; } renderAll(); }, onErr)));
+  ["settings", "appts", "logs", "hobbies", "todos", "devices", "family"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; $("problem").hidden = true; if (!$("gate").hidden && n === "settings") { $("gate").hidden = true; $("gateExtras").hidden = true; $("app").hidden = false; } renderAll(); }, onErr)));
   renderAll();
 });
 

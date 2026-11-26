@@ -2,7 +2,7 @@
 //          site/  -> website: family page at /, Brian's web version at /me/
 // Test build with fake data (no Firebase):  node build.mjs --mock  -> test/
 import * as esbuild from "esbuild";
-import { cpSync, mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { cpSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const mock = process.argv.includes("--mock");
@@ -24,4 +24,10 @@ await esbuild.build({ ...opts, entryPoints: ["src/family.js"], outfile: `${out}/
 cpSync("family/index.html", `${out}/index.html`);
 for (const f of ["style.css", "fonts.css", "fonts"]) cpSync(`www/${f}`, `${out}/${f}`, { recursive: true });
 writeFileSync(`${out}/.nojekyll`, "");
+// cache-busting: make browsers load the newest files after each update
+const v = Date.now().toString(36);
+for (const p of [`${out}/index.html`, `${out}/me/index.html`]) {
+  if (!existsSync(p)) continue;
+  writeFileSync(p, readFileSync(p, "utf8").replace(/(href|src)="(app\.js|style\.css|fonts\.css)"/g, `$1="$2?v=${v}"`));
+}
 console.log(`Built ${mock ? "test (mock data)" : "www/ and site/"}`);
