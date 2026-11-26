@@ -2,7 +2,7 @@ name: Send reminders
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # every 5 minutes (GitHub sometimes runs it a little late)
+    - cron: "*/10 * * * *"   # every 5 minutes (GitHub sometimes runs it a little late)
   workflow_dispatch:
 
 permissions:
