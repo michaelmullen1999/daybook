@@ -170,3 +170,4 @@ a{color:var(--blue)}
 @media(prefers-reduced-motion:no-preference){.panda .wave{transform-origin:86px 76px;animation:pwave 1.6s ease-in-out 3}@keyframes pwave{50%{transform:rotate(-18deg)}}}
 @media(max-width:600px){.hello .panda{width:42px;height:42px}}
 @media(max-width:600px){header{padding-top:calc(12px + env(safe-area-inset-top))}header h1{font-size:26px}header .clock{font-size:26px;display:flex;gap:10px;align-items:baseline}header .clock small{margin:0}.hdr-seg{display:none}header .when{font-size:16px}}
+@media(max-width:600px){.ctable thead{display:none}.ctable tr{display:grid;grid-template-columns:minmax(0,1fr) auto;padding:10px 0;border-top:1px solid var(--line)}.ctable td{border:0;padding:2px 0;grid-column:1}.ctable td:first-child{font-size:19px}.ctable td:not(:first-child):not(.noprint)::before{content:attr(data-l) ": ";color:var(--soft);font-size:15px}.ctable td:empty{display:none}.ctable td.noprint{grid-column:2;grid-row:1/span 4;align-self:center}}
