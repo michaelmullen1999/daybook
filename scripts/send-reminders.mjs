@@ -1,12 +1,14 @@
 // Reminder sender. GitHub runs this every 5 minutes (see .github/workflows/reminders.yml).
 // It reads Daybook's data with a private key (the FIREBASE_SA secret) and sends push reminders
 // to every device that turned reminders on. Each reminder is sent once (remembered in reminderState/sent).
-import admin from "firebase-admin";
+import { initializeApp, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import { wall, dayKey, mins, fmt12, slotsFor, occurrences, addDays, daysBetween } from "../src/util.js";
 
 const TZ = "America/Los_Angeles"; // Portland
-admin.initializeApp({ credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SA)) });
-const db = admin.firestore();
+initializeApp({ credential: cert(JSON.parse(process.env.FIREBASE_SA)) });
+const db = getFirestore();
 const all = async c => (await db.collection(c).get()).docs.map(d => ({ id: d.id, ...d.data() }));
 
 const w = wall(TZ), tk = dayKey(w), nm = w.h * 60 + w.mi, tomorrow = addDays(tk, 1);
@@ -54,7 +56,7 @@ if (nm >= 20 * 60 && nm < 22 * 60 && !diary.find(d => d.id === tk)) remind(`d|${
 console.log(`${tk} ${String(w.h).padStart(2, "0")}:${String(w.mi).padStart(2, "0")} Portland · ${out.length} to send · ${tokens.length} device(s)`);
 if (out.length && tokens.length) {
   for (const r of out) {
-    const res = await admin.messaging().sendEachForMulticast({
+    const res = await getMessaging().sendEachForMulticast({
       tokens: tokens.map(t => t.token),
       webpush: { headers: { Urgency: "high", TTL: "7200" }, data: { title: r.title, body: r.body, tag: r.tag, url: "./" } }
     });
