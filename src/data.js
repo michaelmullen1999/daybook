@@ -71,3 +71,6 @@ export async function connectDevice(code, name, by) {
 export const removeDevice = uid => quiet(deleteDoc(doc(db, "devices", uid)));
 export const addFamily = (email, by) => quiet(setDoc(doc(db, "family", email.trim().toLowerCase()), { by, added: new Date().toISOString() }));
 export const removeFamily = email => quiet(deleteDoc(doc(db, "family", email)));
+// Generic documents (notes, diary, care sheet)
+export const saveDoc = (col, obj) => quiet(put(col, obj));
+export const removeDoc = (col, id) => quiet(deleteDoc(doc(db, col, id)));

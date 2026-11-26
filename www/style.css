@@ -3,9 +3,9 @@
    PICTURE: today's timeline strip, every check as a mark, done or due, with a "now" line.
    COLOUR and TYPE: white or near-black ground, deep ink, one blue, amber for due. Atkinson Hyperlegible.
    LAYOUT: tabs across the top, one column in portrait, two in landscape. */
-:root{color-scheme:light;--bg:#ffffff;--ink:#111a22;--soft:#566572;--card:#f3f6f9;--line:#dbe3ea;--blue:#1f5fd1;--due:#b86a00;--dueBg:#fff4e0;--miss:#b3382c;--ok:#111a22}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#0f1317;--ink:#edf2f6;--soft:#a9b6c0;--card:#182027;--line:#28323b;--blue:#7fb0ff;--due:#ffb547;--dueBg:#2d2312;--miss:#ff8a7d;--ok:#edf2f6}}
-:root[data-theme=dark]{color-scheme:dark;--bg:#0f1317;--ink:#edf2f6;--soft:#a9b6c0;--card:#182027;--line:#28323b;--blue:#7fb0ff;--due:#ffb547;--dueBg:#2d2312;--miss:#ff8a7d;--ok:#edf2f6}
+:root{color-scheme:light;--bg:#ffffff;--ink:#111a22;--soft:#566572;--card:#f3f6f9;--line:#dbe3ea;--blue:#1f5fd1;--due:#b86a00;--dueBg:#fff4e0;--miss:#b3382c;--ok:#111a22;--note:#fff6cf}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#0f1317;--ink:#edf2f6;--soft:#a9b6c0;--card:#182027;--line:#28323b;--blue:#7fb0ff;--due:#ffb547;--dueBg:#2d2312;--miss:#ff8a7d;--ok:#edf2f6;--note:#2e2a17}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#0f1317;--ink:#edf2f6;--soft:#a9b6c0;--card:#182027;--line:#28323b;--blue:#7fb0ff;--due:#ffb547;--dueBg:#2d2312;--miss:#ff8a7d;--ok:#edf2f6;--note:#2e2a17}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.5 "Atkinson Hyperlegible",Verdana,system-ui,sans-serif;overflow-x:clip;-webkit-text-size-adjust:100%}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -124,3 +124,49 @@ td.tm{white-space:nowrap;width:5.5em}
 .chartnote{font-size:15px;color:var(--soft);margin:6px 0 4px}
 .flag{color:var(--miss);font-weight:700}
 .rep{display:inline-block;font-size:14px;color:var(--soft);border:1px solid var(--line);border-radius:999px;padding:0 8px;margin-left:6px;white-space:nowrap}
+/* ---------- Deborah's app: notes, diary, care sheet ---------- */
+.noteform textarea{min-height:70px}
+.noteform .row-btns{align-items:center}
+label.inline{display:inline-flex;align-items:center;gap:8px;font-weight:400}
+.notes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:14px;margin:6px 0 10px}
+.note{background:var(--note);border-radius:14px;padding:14px 16px 8px;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 0 var(--line)}
+.note.pinned{outline:2px solid var(--due)}
+.note.done{opacity:.6}.note.done .ntext{text-decoration:line-through}
+.ntext{font-size:18px;overflow-wrap:anywhere}
+.nmeta{font-size:14px;color:var(--soft)}
+.nact{display:flex;flex-wrap:wrap;gap:4px 12px}
+.diary{background:var(--card);border-radius:18px;padding:18px 18px 8px;margin:0 0 18px}
+.diary>label,.diary .two label{display:block;font-weight:700;font-size:16px;margin:14px 0 6px}
+.dhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.dhead input{width:auto}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{background:var(--bg);font-weight:400;min-height:44px;border-radius:999px;padding:6px 16px}
+.chips button[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:var(--bg);font-weight:700}
+.csec{border-top:2px solid var(--line);padding:6px 0 10px}
+.csec:first-of-type{border-top:0}
+.chd{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.chd h2{margin:18px 0 8px}
+.csec.alert .cval{color:var(--miss);font-weight:700}
+.cval{font-size:18px;margin:0 0 8px}
+.ctable th{text-align:left;font-size:15px;color:var(--soft);padding:6px;font-weight:700}
+.printhead{display:none}
+a{color:var(--blue)}
+@media print{
+  body.printing-care header,body.printing-care nav,body.printing-care .noprint,body.printing-care #problem,body.printing-care #offline,body.printing-care main>section:not(#t-care),body.printing-care .toast{display:none!important}
+  body.printing-care #t-care{display:block!important}
+  body.printing-care .printhead{display:block}
+  body.printing-care{background:#fff;color:#000;font-size:14px}
+  body.printing-care main{padding:0}
+  body.printing-care .csec{break-inside:avoid}
+}
+/* pandas */
+.panda{flex:none;display:block}
+.hello{display:flex;align-items:center;gap:14px}
+.gate-panda{display:flex;justify-content:center;margin:0 0 8px}
+.empty-panda{display:flex;align-items:center;gap:14px;padding:6px 0}
+.empty-panda .panda{color:var(--soft)}
+.empty-panda .empty{padding:0}
+.love{display:flex;flex-direction:column;align-items:center;gap:6px}
+@media(prefers-reduced-motion:no-preference){.panda .wave{transform-origin:86px 76px;animation:pwave 1.6s ease-in-out 3}@keyframes pwave{50%{transform:rotate(-18deg)}}}
+@media(max-width:600px){.hello .panda{width:42px;height:42px}}
+@media(max-width:600px){header{padding-top:calc(12px + env(safe-area-inset-top))}header h1{font-size:26px}header .clock{font-size:26px;display:flex;gap:10px;align-items:baseline}header .clock small{margin:0}.hdr-seg{display:none}header .when{font-size:16px}}

@@ -23,6 +23,7 @@ if (!mock) { mkdirSync(`${out}/me`, { recursive: true }); cpSync("www", `${out}/
 else { for (const f of ["index.html", "style.css", "fonts.css", "fonts"]) cpSync(`www/${f}`, `test/me/${f}`, { recursive: true }); }
 await esbuild.build({ ...opts, entryPoints: ["src/family.js"], outfile: `${out}/app.js` });
 cpSync("family/index.html", `${out}/index.html`);
+for (const f of ["manifest.webmanifest", "sw.js", "icons"]) cpSync(`family/${f}`, `${out}/${f}`, { recursive: true });
 for (const f of ["style.css", "fonts.css", "fonts"]) cpSync(`www/${f}`, `${out}/${f}`, { recursive: true });
 writeFileSync(`${out}/.nojekyll`, "");
 writeFileSync(`${out}/version.json`, JSON.stringify({ version: APP_VERSION }));

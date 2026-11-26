@@ -4,7 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Brian's Daybook: family</title>
+<title>Daybook</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Daybook">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1317" media="(prefers-color-scheme: dark)">
 <script>try{var t=localStorage.getItem("daybook-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
@@ -15,80 +24,100 @@
 
 <div id="app" hidden>
 <header>
-  <div><h1>Brian's Daybook</h1><div class="when" id="date"></div></div>
+  <div class="hello"><span id="hpanda"></span><div><h1 id="greet">Hello</h1><div class="when" id="date"></div></div></div>
   <div><div class="clock" id="clock"></div>
-    <div class="seg small-seg" role="group" aria-label="Appearance" style="margin-top:10px"><button data-theme-set="auto">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div></div>
+    <div class="seg small-seg hdr-seg" role="group" aria-label="Appearance" style="margin-top:10px"><button data-theme-set="auto">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div></div>
 </header>
 <nav><div>
-  <button data-tab="overview" aria-current="true">Overview</button>
+  <button data-tab="today" aria-current="true">Today</button>
   <button data-tab="appts"><span class="l">Appointments</span><span class="s">Appts</span></button>
+  <button data-tab="notes">Notes</button>
+  <button data-tab="diary">Diary</button>
+  <button data-tab="care"><span class="l">Care info</span><span class="s">Care</span></button>
   <button data-tab="todo">To-do</button>
-  <button data-tab="checks">Checks</button>
   <button data-tab="log">Log</button>
-  <button data-tab="hobbies">Hobbies</button>
-  <button data-tab="people">People</button>
+  <button data-tab="setup">Setup</button>
 </div></nav>
 
 <main>
 <div id="problem" class="banner" hidden></div>
+<div id="offline" class="banner" hidden>No internet right now. Anything you add is saved on this device and sends when you're back online.</div>
 
-<section class="tab on" id="t-overview">
+<section class="tab on" id="t-today">
   <div class="next" id="ovNext"></div>
   <div class="tl" id="timeline"></div>
   <div class="key"><span class="k1">Done</span><span class="k2">Due now</span><span class="k3">Missed</span><span>Later</span></div>
-  <div id="ovCharts"></div>
   <div class="grid2">
-    <div><h2>Today's checks</h2><div id="ovChecks"></div></div>
-    <div><h2>Coming up</h2><div id="ovAppts"></div>
+    <div>
+      <h2>Pills and insulin</h2><div id="ovChecks"></div>
+      <div class="row-btns"><button id="logOther">Log something else</button></div>
+      <h2>Pinned notes</h2><div id="ovNotes"></div>
+      <div class="row-btns"><button data-tab="notes">All notes</button></div>
+    </div>
+    <div>
+      <h2>Coming up</h2><div id="ovAppts"></div>
       <div class="row-btns"><button class="pri" data-tab="appts" data-add="1">Add appointment</button></div>
-      <h2>His to-do list</h2><div id="ovTodos"></div></div>
+      <h2>Today's diary</h2><div id="ovDiary"></div>
+      <h2>To-do</h2><div id="ovTodos"></div>
+    </div>
   </div>
 </section>
 
 <section class="tab" id="t-appts">
-  <p class="small">Enter dates and times in Brian's time. His tablet reminds him the evening before (6 pm) and 2 hours before.</p>
+  <p class="small">Dates and times are Portland time.</p>
   <div class="row-btns"><button class="pri" id="addAppt">Add appointment</button></div>
   <h2>Upcoming</h2><div id="apptList"></div>
   <details><summary class="small" style="cursor:pointer;padding:10px 0">Past appointments</summary><div id="pastList"></div></details>
 </section>
 
+<section class="tab" id="t-notes">
+  <form id="noteForm" class="noteform"><textarea id="noteIn" placeholder="Write a note…" aria-label="New note" rows="2"></textarea>
+    <div class="row-btns"><button class="pri">Add note</button><label class="inline small"><input type="checkbox" id="notePin"> Pin to Today</label></div></form>
+  <div class="notes" id="noteList"></div>
+  <details><summary class="small" style="cursor:pointer;padding:10px 0" id="noteDoneSum">Done</summary><div class="notes" id="noteDone"></div></details>
+</section>
+
+<section class="tab" id="t-diary">
+  <div id="diaryToday"></div>
+  <div class="row-btns"><button id="copyDiary">Copy last 30 days</button><span class="small" id="diaryMsg" style="align-self:center"></span></div>
+  <p class="small">Handy to paste into a message for his doctor.</p>
+  <h2>Earlier days</h2><div id="diaryList"></div>
+</section>
+
+<section class="tab" id="t-care">
+  <div class="row-btns noprint"><button id="printCare">Print or share</button><span class="small" style="align-self:center">Everything a doctor, nurse or helper might need.</span></div>
+  <div id="careSheet"></div>
+</section>
+
 <section class="tab" id="t-todo">
-  <form class="addrow" id="todoForm"><input id="todoIn" placeholder="Add something to Brian's list" aria-label="New to-do"><button class="pri">Add</button></form>
+  <form class="addrow" id="todoForm"><input id="todoIn" placeholder="Add a to-do" aria-label="New to-do"><button class="pri">Add</button></form>
   <div id="todoList"></div>
   <details><summary class="small" style="cursor:pointer;padding:10px 0" id="doneSum">Done</summary><div id="doneList"></div></details>
 </section>
 
-<section class="tab" id="t-checks">
-  <p class="small">What Brian checks or takes, and when (his time). Each one sends a reminder on his tablet. "Warn within" stops a double dose being logged without a warning.</p>
-  <div id="checkList"></div>
-  <div class="row-btns"><button class="pri" id="addCheck">Add a check</button><button id="seed" hidden>Start with blood sugar and insulin examples</button></div>
-  <h2>His name on the app</h2>
-  <div class="addrow"><input id="nameIn" aria-label="Brian's name on the app"><button id="nameSave">Save</button></div>
-</section>
-
 <section class="tab" id="t-log">
+  <div id="ovCharts"></div>
   <div class="row-btns"><button id="copyLog">Copy last 14 days</button><span class="small" id="copyMsg" style="align-self:center"></span></div>
-  <p class="small">Times are Brian's time.</p>
   <div id="logList"></div>
 </section>
 
-<section class="tab" id="t-hobbies">
-  <p class="small">Brian adds and updates these himself.</p>
-  <div id="hobList"></div>
-</section>
-
-<section class="tab" id="t-people">
-  <h2>Brian's devices</h2>
-  <p class="small">To set up his tablet or phone: on that device, open <b style="overflow-wrap:anywhere">github.com/michaelmullen1999/daybook/releases/latest/download/Daybook.apk</b> and install it. Open Daybook, and it shows a code. Type the code here.</p>
-  <form id="devForm"><div class="two"><div><label class="small" for="devCode">Code</label><input id="devCode" placeholder="K7Q-4MX" autocomplete="off" autocapitalize="characters"></div>
-    <div><label class="small" for="devName">Name (optional)</label><input id="devName" placeholder="Brian's tablet"></div></div>
-    <div class="row-btns"><button class="pri">Connect device</button></div><p class="err" id="devMsg"></p></form>
-  <div id="devList"></div>
-  <h2>Family who can use this page</h2>
+<section class="tab" id="t-setup">
+  <h2>Pills, insulin and checks</h2>
+  <p class="small">What Brian takes or checks, and when (Portland time). "Warn within" stops a dose being logged twice by mistake.</p>
+  <div id="checkList"></div>
+  <div class="row-btns"><button class="pri" id="addCheck">Add a check</button><button id="seed" hidden>Start with blood sugar and insulin examples</button></div>
+  <h2>Family who can use this app</h2>
   <p class="small">Add their Google (Gmail) address. They sign in with the Google button.</p>
   <form class="addrow" id="famForm"><input id="famEmail" type="email" placeholder="name@gmail.com" aria-label="Email to add"><button class="pri">Add</button></form>
   <p class="err" id="famMsg"></p>
   <div id="famList"></div>
+  <h2>Appearance</h2>
+  <div class="seg" role="group" aria-label="Appearance"><button data-theme-set="auto">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div>
+  <p class="small">Auto follows the iPad's own light or dark setting.</p>
+  <h2>Install on an iPad or iPhone</h2>
+  <p class="small">Open this page in <b>Safari</b>, tap <b>Share</b> (the square with the arrow), then <b>Add to Home Screen</b>. Open Daybook from the home screen and sign in once.</p>
+  <h2>His name</h2>
+  <div class="addrow"><input id="nameIn" aria-label="Brian's name"><button id="nameSave">Save</button></div>
 </section>
 
 <section style="margin-top:40px">

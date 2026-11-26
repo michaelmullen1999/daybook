@@ -1,10 +1,12 @@
-// Family page: Deborah, Nicole and Levi manage Brian's appointments, checks and to-dos.
+// Daybook: Deborah's app (iPad/iPhone home screen) and the family page. Logs Brian's pills and insulin, appointments, notes, diary, care info.
 import * as D from "./data.js";
 import { BRIAN_TIMEZONE, FAMILY, OWNERS } from "./config.js";
-import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, makeSheet, val, copyText, themeSwitch, nextDate, repeatLabel, REPEAT_OPTIONS, tickTodo, addDays, drawReadings, inRangeText } from "./util.js";
+import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, zonedToDate, makeSheet, val, copyText, themeSwitch, nextDate, repeatLabel, REPEAT_OPTIONS, tickTodo, addDays, drawReadings, inRangeText } from "./util.js";
 themeSwitch();
+import { initCare } from "./care.js";
+import { pandaFace, pandaWave, pandaHeart, emptyPanda } from "./panda.js";
 
-const S = { settings: null, appts: [], logs: [], hobbies: [], todos: [], devices: [], family: [] };
+const S = { settings: null, appts: [], logs: [], hobbies: [], todos: [], family: [], notes: [], care: [], diary: [] };
 const sheet = makeSheet();
 const unsubs = [];
 let user = null;
@@ -14,7 +16,7 @@ const me = () => (user && user.displayName ? user.displayName.split(" ")[0] : (u
 function gate(html) { $("app").hidden = true; $("gate").hidden = false; $("gateExtras").hidden = false; $("gate").innerHTML = html; }
 function showSignIn() {
   if (!D.configured) return gate(`<h1>Not set up yet</h1><p>Add the Firebase details to <b>src/config.js</b>. See the README.</p>`);
-  gate(`<h1>Brian's Daybook</h1><p>Family page. Sign in with your Google account.</p>
+  gate(`<div class="gate-panda">${pandaWave(130)}</div><h1>Daybook</h1><p>Brian's pills, appointments, notes and care info. Sign in with your Google account.</p>
     <button class="pri" id="gBtn" style="width:100%;min-height:56px">Sign in with Google</button><p class="err" id="gErr"></p>`);
   $("gBtn").addEventListener("click", async () => {
     $("gErr").textContent = "";
@@ -22,8 +24,8 @@ function showSignIn() {
   });
 }
 function showNotAllowed() {
-  gate(`<h1>Not on the family list yet</h1><p>You're signed in as <b>${esc(user.email || "")}</b>.</p>
-    <p>Ask Levi or Nicole to add this email on the family page, under <b>People</b>. Then reload this page.</p>
+  gate(`<div class="gate-panda">${pandaFace(90)}</div><h1>Not on the family list yet</h1><p>You're signed in as <b>${esc(user.email || "")}</b>.</p>
+    <p>Ask Levi or Nicole to add this email in Daybook, under <b>Setup</b>. Then reload this page.</p>
     <div class="row-btns"><button id="gOut">Use a different Google account</button></div>`);
   $("gOut").addEventListener("click", () => D.signOut());
 }
@@ -36,7 +38,7 @@ D.onUser(u => {
     if (String(err.code).includes("permission")) return showNotAllowed();
     $("problem").textContent = "Can't reach the Daybook right now. Check your connection."; $("problem").hidden = false;
   };
-  ["settings", "appts", "logs", "hobbies", "todos", "devices", "family"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; $("problem").hidden = true; if (!$("gate").hidden && n === "settings") { $("gate").hidden = true; $("gateExtras").hidden = true; $("app").hidden = false; } renderAll(); }, onErr)));
+  ["settings", "appts", "logs", "todos", "family", "notes", "care", "diary"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; $("problem").hidden = true; if (!$("gate").hidden && n === "settings") { $("gate").hidden = true; $("gateExtras").hidden = true; $("app").hidden = false; } renderAll(); }, onErr)));
   renderAll();
 });
 
@@ -47,47 +49,90 @@ const btk = () => dayKey(bw());
 const apptKey = a => `${a.date} ${a.time || "00:00"}`;
 const lastLog = id => S.logs.filter(l => l.check === id)[0];
 const saveSettings = patch => D.saveSettings({ name: "Brian", checks: [], ...(S.settings || {}), ...patch });
-let toastT;
-function toast(msg) { $("toastMsg").textContent = msg; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => $("toast").classList.remove("on"), 5000); }
+let toastT, undoId = null;
+function toast(msg, logId) { $("toastMsg").textContent = msg; undoId = logId || null; $("toastUndo").hidden = !undoId; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => $("toast").classList.remove("on"), logId ? 9000 : 5000); }
+$("toastUndo").addEventListener("click", () => { if (undoId) D.deleteLog(undoId); $("toast").classList.remove("on"); });
+const C = initCare({ S, D, sheet, toast, me: () => me(), today: () => btk() });
 
 /* ---------- render ---------- */
 function renderHeader() {
-  const w = bw(), mine = wall("");
-  $("date").textContent = `Brian's time: ${DAYS[w.wd]} ${w.d} ${MON[w.mo - 1]}`;
-  $("clock").innerHTML = `${esc(fmt12(hmOf(w)))}<small>Your time: ${esc(fmt12(hmOf(mine)))}</small>`;
+  const w = bw(), mine = wall(""), same = hmOf(w) === hmOf(mine);
+  const g = w.h < 5 ? "Hello" : w.h < 12 ? "Good morning" : w.h < 17 ? "Good afternoon" : "Good evening";
+  $("greet").textContent = `${g}, ${me()}`;
+  $("date").textContent = `${DAYS[w.wd]} ${w.d} ${MON[w.mo - 1]}${same ? "" : " (Portland)"}`;
+  $("clock").innerHTML = `${esc(fmt12(hmOf(w)))}${same ? "" : `<small>Your time: ${esc(fmt12(hmOf(mine)))}</small>`}`;
   $("who").textContent = `Signed in as ${user && user.email ? user.email : ""}.`;
 }
 
-function renderOverview() {
+function renderToday() {
   const w = bw(), nm = w.h * 60 + w.mi, tk = dayKey(w);
   const dayLogs = S.logs.filter(l => (l.local || "").startsWith(tk));
   const all = checks().map(c => ({ c, slots: slotsFor(c, dayLogs, nm) }));
+  const due = all.flatMap(x => x.slots.filter(s => s.st === "due").map(s => ({ c: x.c, s })));
   const missed = all.flatMap(x => x.slots.filter(s => s.st === "missed").map(s => `${x.c.name} ${fmt12(s.t)}`));
-  const last = S.logs[0];
+  const later = all.flatMap(x => x.slots.filter(s => s.st === "later").map(s => ({ c: x.c, s }))).sort((a, b) => mins(a.s.t) - mins(b.s.t));
   const nx = $("ovNext");
-  nx.className = "next" + (missed.length ? " due" : "");
-  nx.innerHTML = (missed.length ? `<b>Missed today: ${esc(missed.join(", "))}</b>` : `<b>${checks().length ? "Nothing missed today so far." : "No checks set yet. Add them under Checks."}</b>`) +
-    `<span>${last ? `He last logged something ${esc(ago(Date.now() - new Date(last.at)))}.` : "Nothing logged yet."}</span>`;
+  if (due.length) { nx.className = "next due"; nx.innerHTML = `<b>Due now: ${due.map(d => esc(d.c.name)).join(", ")}</b><span>${due.map(d => fmt12(d.s.t)).join(", ")}</span>${missed.length ? `<span>Missed earlier: ${esc(missed.join(", "))}</span>` : ""}`; }
+  else if (missed.length) { nx.className = "next due"; nx.innerHTML = `<b>Missed today: ${esc(missed.join(", "))}</b><span>Log it below if it was taken.</span>`; }
+  else if (later.length) { const n = later[0], diff = mins(n.s.t) - nm; nx.className = "next"; nx.innerHTML = `<b>Next: ${esc(n.c.name)} at ${fmt12(n.s.t)}</b><span>in ${diff >= 60 ? Math.floor(diff / 60) + " h " : ""}${diff % 60} min</span>`; }
+  else { nx.className = "next"; nx.innerHTML = checks().length ? `<b>All of today's pills and checks are done.</b>` : `<b>No pills or checks set yet.</b><span>Add them under Setup.</span>`; }
 
   let lo = 6 * 60; const hi = 24 * 60;
   checks().forEach(c => c.times.forEach(t => { const m = mins(t); if (m < lo) lo = Math.floor(m / 60) * 60; }));
   const pos = m => ((Math.min(Math.max(m, lo), hi) - lo) / (hi - lo) * 100).toFixed(2);
   const step = window.innerWidth < 600 ? 360 : 180, hrs = []; for (let m = lo; m <= hi; m += step) hrs.push(m);
-  const nowLine = `<div class="now" style="left:${pos(nm)}%"></div>`;
+  const nowLine = nm >= lo && nm <= hi ? `<div class="now" style="left:${pos(nm)}%"></div>` : "";
   $("timeline").innerHTML = all.length ? `<div class="tl-hours"><span></span><div class="track">${hrs.map(m => `<span class="hr${m === lo ? " first" : m === hi ? " last" : ""}" style="left:${pos(m)}%">${m === hi ? "12 am" : fmt12(pad(Math.floor(m / 60) % 24) + ":00").replace(":00", "")}</span>`).join("")}</div></div>` +
     all.map(x => `<div class="tl-row"><span class="nm">${esc(x.c.name)}</span><div class="track">${nowLine}${x.slots.map(s => `<span class="dot ${s.st}" style="left:${pos(mins(s.t))}%"></span>`).join("")}</div></div>`).join("") : "";
 
   $("ovChecks").innerHTML = all.length ? all.map(x => {
-    const ll = lastLog(x.c.id);
-    return `<div class="item"><div><div class="t">${esc(x.c.name)}</div><div class="s">${ll ? `Last: ${esc(ago(Date.now() - new Date(ll.at)))} (${esc(fmt12(ll.local.slice(11)))}${valueText(ll, x.c.unit) ? ", " + esc(valueText(ll, x.c.unit)) : ""})` : "Not logged yet"}</div></div><span></span>
+    const ll = lastLog(x.c.id), isDue = x.slots.some(s => s.st === "due"), flag = ll ? inRangeText(ll.value, x.c) : "";
+    const lastTxt = ll ? `Last ${esc(ago(Date.now() - new Date(ll.at)))} (${esc(fmt12(ll.local.slice(11)))}${valueText(ll, x.c.unit) ? ", " + esc(valueText(ll, x.c.unit)) : ""}${flag ? `, <span class="flag">${flag}</span>` : ""}${ll.by && ll.by !== "Brian" ? `, by ${esc(ll.by)}` : ""})` : "Not logged yet";
+    return `<div class="item"><div><div class="t">${esc(x.c.name)}</div><div class="s ${isDue ? "duec" : ""}">${isDue ? "Due now. " : ""}${lastTxt}</div></div>
+      <button class="pri" data-log="${esc(x.c.id)}">Log</button>
       <div class="slots">${x.slots.map(s => `<span class="chip ${s.st}">${fmt12(s.t)}${s.st === "done" ? " ✓" : s.st === "missed" ? " – missed" : ""}</span>`).join("")}</div></div>`;
-  }).join("") : `<p class="empty">No checks set.</p>`;
+  }).join("") : emptyPanda("No pills or checks set. Add them under Setup.");
 
   const up = upcomingAppts(tk).slice(0, 3);
-  renderCharts(tk);
-  $("ovAppts").innerHTML = up.length ? up.map(a => apptRow(a, tk, true)).join("") : `<p class="empty">Nothing booked.</p>`;
+  $("ovAppts").innerHTML = up.length ? up.map(a => apptRow(a, tk, true)).join("") : emptyPanda("Nothing booked.");
   const open = S.todos.filter(t => !t.done).sort(todoSort);
-  $("ovTodos").innerHTML = open.length ? open.slice(0, 5).map(t => todoRow(t, tk)).join("") + (open.length > 5 ? `<button class="link" data-tab="todo">See all ${open.length}</button>` : "") : `<p class="empty">Nothing on his list.</p>`;
+  $("ovTodos").innerHTML = open.length ? open.slice(0, 5).map(t => todoRow(t, tk)).join("") + (open.length > 5 ? `<button class="link" data-tab="todo">See all ${open.length}</button>` : "") : emptyPanda("Nothing to do.");
+  C.renderTodayNotes(); C.renderTodayDiary();
+}
+
+/* ---------- logging (Deborah logs for Brian) ---------- */
+function writeLog({ check, name, unit, value, note, time }) {
+  const w = bw(), t = time || hmOf(w);
+  const [h, m] = t.split(":").map(Number), at = zonedToDate(BRIAN_TIMEZONE, w.y, w.mo, w.d, h, m);
+  const l = { id: D.newId(), check, name, unit: unit || "", value: value ?? "", note: note || "", at: at.toISOString(), local: `${dayKey(w)} ${t}`, by: me() };
+  D.addLog(l); toast(`${name} logged at ${fmt12(t)}`, l.id);
+}
+const recentLog = c => { const ll = lastLog(c.id); return ll && (Date.now() - new Date(ll.at)) < (Number(c.warn) || 0) * 3600e3 ? ll : null; };
+function logSheet(id) {
+  const c = checks().find(x => x.id === id); if (!c) return;
+  const ll = recentLog(c), w = bw();
+  sheet.open(`<h3>Log ${esc(c.name)}</h3>
+   ${ll ? `<div class="warn"><b>Already logged ${esc(ago(Date.now() - new Date(ll.at)))}</b>, at ${esc(fmt12(ll.local.slice(11)))}${valueText(ll, c.unit) ? ` (${esc(valueText(ll, c.unit))})` : ""}${ll.by ? ` by ${esc(ll.by)}` : ""}. Check before you log it again.</div>` : ""}
+   ${c.value ? `<label for="fVal">Reading or amount${c.unit ? ` (${esc(c.unit)})` : ""}</label><input id="fVal" inputmode="decimal">` : ""}
+   <label for="fTime">Time (Portland)</label><input id="fTime" type="time" value="${hmOf(w)}">
+   <label for="fNote">Note (optional)</label><input id="fNote">
+   <div class="acts"><button data-act="cancel">Cancel</button><button class="pri" data-act="save">${ll ? "Log it anyway" : "Save"}</button></div>`, () => {
+    writeLog({ check: c.id, name: c.name, unit: c.unit, value: c.value ? val("fVal") : "", note: val("fNote"), time: $("fTime").value });
+  });
+}
+function otherSheet() {
+  const names = [...new Set([...checks().map(c => c.name), "Pills", "Blood sugar", "Blood pressure", "Weight"])], w = bw();
+  sheet.open(`<h3>Log something else</h3>
+   <label for="oN">What</label><input id="oN" list="oNames" placeholder="Pills, blood pressure…"><datalist id="oNames">${names.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
+   <div class="two"><div><label for="oV">Reading or amount (optional)</label><input id="oV" inputmode="decimal"></div><div><label for="oU">Unit</label><input id="oU" placeholder="mg/dL, tablets"></div></div>
+   <label for="oT">Time (Portland)</label><input id="oT" type="time" value="${hmOf(w)}">
+   <label for="oNote">Note (optional)</label><input id="oNote" placeholder="Which pills, how he was…">
+   <div class="acts"><button data-act="cancel">Cancel</button><button class="pri" data-act="save">Save</button></div>`, () => {
+    const name = val("oN"); if (!name) { sheet.msg("Say what you're logging."); return false; }
+    const c = checks().find(x => x.name.toLowerCase() === name.toLowerCase()), ll = c ? recentLog(c) : null;
+    if (ll && !$("oN").dataset.ok) { $("oN").dataset.ok = "1"; sheet.msg(`${c.name} was already logged ${ago(Date.now() - new Date(ll.at))}. Tap Save again to log it anyway.`); return false; }
+    writeLog({ check: c ? c.id : "other", name: c ? c.name : name, unit: val("oU") || (c ? c.unit : ""), value: val("oV"), note: val("oNote"), time: $("oT").value });
+  });
 }
 
 /* ---------- readings charts ---------- */
@@ -136,8 +181,8 @@ function apptRow(a, tk, edit) {
 function renderAppts() {
   const tk = btk(), s = [...S.appts].sort((a, b) => apptKey(a).localeCompare(apptKey(b)));
   const up = upcomingAppts(tk), past = s.filter(a => !a.repeat && a.date < tk).reverse().slice(0, 20);
-  $("apptList").innerHTML = up.length ? up.map(a => apptRow(a, tk, true)).join("") : `<p class="empty">Nothing booked.</p>`;
-  $("pastList").innerHTML = past.length ? past.map(a => apptRow(a, tk, true)).join("") : `<p class="empty">None yet.</p>`;
+  $("apptList").innerHTML = up.length ? up.map(a => apptRow(a, tk, true)).join("") : emptyPanda("Nothing booked.");
+  $("pastList").innerHTML = past.length ? past.map(a => apptRow(a, tk, true)).join("") : emptyPanda("None yet.");
 }
 
 const todoSort = (a, b) => (a.due || "9999").localeCompare(b.due || "9999") || (a.created || "").localeCompare(b.created || "");
@@ -150,7 +195,7 @@ function todoRow(t, tk) {
 function renderTodos() {
   const tk = btk();
   const open = S.todos.filter(t => !t.done).sort(todoSort), done = S.todos.filter(t => t.done).sort((a, b) => (b.doneAt || "").localeCompare(a.doneAt || "")).slice(0, 30);
-  $("todoList").innerHTML = open.length ? open.map(t => todoRow(t, tk)).join("") : `<p class="empty">Nothing on his list.</p>`;
+  $("todoList").innerHTML = open.length ? open.map(t => todoRow(t, tk)).join("") : emptyPanda("Nothing on his list.");
   $("doneSum").textContent = `Done (${done.length})`;
   $("doneList").innerHTML = done.map(t => todoRow(t, tk)).join("");
 }
@@ -163,25 +208,27 @@ function renderChecks() {
 
 function renderLog() {
   const tk = btk(), by = {};
+  renderCharts(tk);
   S.logs.forEach(l => { const k = (l.local || "").slice(0, 10); if (!k) return; const n = daysBetween(k, tk); if (n >= 0 && n <= 14) (by[k] = by[k] || []).push(l); });
   const keys = Object.keys(by).sort().reverse();
-  $("logList").innerHTML = keys.length ? keys.map(k => { const p = prettyDate(k); return `<div class="day"><h3>${relDay(tk, k)} · ${p.long}</h3><table>${by[k].map(l => `<tr><td class="tm">${fmt12(l.local.slice(11))}</td><td>${esc(l.name)}${l.note ? `<div class="small">${esc(l.note)}</div>` : ""}</td><td class="n">${esc(valueText(l))}${(() => { const c = checks().find(x => x.id === l.check); const f = c ? inRangeText(l.value, c) : ""; return f ? `<div class="flag small">${f}</div>` : ""; })()}</td><td style="width:1%"><button class="link" data-ldel="${esc(l.id)}">Delete</button></td></tr>`).join("")}</table></div>`; }).join("") : `<p class="empty">Nothing logged in the last 14 days.</p>`;
+  $("logList").innerHTML = keys.length ? keys.map(k => { const p = prettyDate(k); return `<div class="day"><h3>${relDay(tk, k)} · ${p.long}</h3><table>${by[k].map(l => `<tr><td class="tm">${fmt12(l.local.slice(11))}</td><td>${esc(l.name)}${l.note ? `<div class="small">${esc(l.note)}</div>` : ""}${l.by ? `<div class="small">by ${esc(l.by)}</div>` : ""}</td><td class="n">${esc(valueText(l))}${(() => { const c = checks().find(x => x.id === l.check); const f = c ? inRangeText(l.value, c) : ""; return f ? `<div class="flag small">${f}</div>` : ""; })()}</td><td style="width:1%"><button class="link" data-ldel="${esc(l.id)}">Delete</button></td></tr>`).join("")}</table></div>`; }).join("") : emptyPanda("Nothing logged in the last 14 days.");
 }
 
 function renderHobbies() {
+  if (!$("hobList")) return;
   const list = [...S.hobbies].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   $("hobList").innerHTML = list.length ? list.map(h => `<div class="hob"><div class="row"><span class="t">${esc(h.name)}</span><span class="small">${h.last ? "Last done " + esc(ago(Date.now() - new Date(h.last))) : "Not logged yet"}</span></div>${h.note ? `<p style="margin:8px 0 0">${esc(h.note)}</p>` : ""}</div>`).join("") : `<p class="empty">No hobbies added yet.</p>`;
 }
 
 function renderPeople() {
-  $("devList").innerHTML = S.devices.length ? S.devices.map(d => `<div class="item"><div><div class="t">${esc(d.name || "Brian's device")}</div><div class="s">Connected ${d.added ? esc(ago(Date.now() - new Date(d.added))) : ""}${d.by ? " by " + esc(d.by) : ""}</div></div><button data-devdel="${esc(d.id)}">Disconnect</button></div>`).join("") : `<p class="empty">No devices connected yet.</p>`;
   const fam = [...OWNERS.map(e => ({ id: e, owner: true })), ...S.family.filter(f => !OWNERS.includes(f.id))];
   $("famList").innerHTML = fam.map(f => `<div class="item"><div><div class="t" style="font-size:18px;overflow-wrap:anywhere">${esc(f.id)}</div><div class="s">${f.owner ? "Owner" : f.by ? "Added by " + esc(f.by) : ""}</div></div>${f.owner || (user && f.id === (user.email || "").toLowerCase()) ? "<span></span>" : `<button data-famdel="${esc(f.id)}">Remove</button>`}</div>`).join("");
 }
 
 function renderAll() {
   if ($("app").hidden) return;
-  renderHeader(); renderOverview(); renderAppts(); renderTodos(); renderChecks(); renderLog(); renderHobbies(); renderPeople();
+  renderHeader(); renderToday(); renderAppts(); renderTodos(); renderChecks(); renderLog(); renderPeople();
+  C.renderNotes(); C.renderDiary(); C.renderCare();
 }
 
 /* ---------- editors ---------- */
@@ -199,7 +246,7 @@ function apptSheet(id) {
     if (mode === "delete") { D.deleteAppt(id); return toast("Appointment deleted"); }
     if (!val("aT") || !val("aD")) { sheet.msg("Add what it is and the date."); return false; }
     D.saveAppt({ id: id || D.newId(), title: val("aT"), date: val("aD"), time: val("aH"), repeat: $("aR").value, where: val("aW"), with: val("aWith"), notes: val("aN"), by: a.by || me() });
-    toast(id ? "Appointment updated" : "Appointment added. It's on Brian's tablet now.");
+    toast(id ? "Appointment updated" : "Appointment added");
   });
 }
 
@@ -227,7 +274,7 @@ function checkSheet(id) {
     if (lo !== "" && hi !== "" && +lo >= +hi) { sheet.msg("The low number should be smaller than the high number."); return false; }
     const n = { id: id || D.newId(), name: val("cN"), times, value: $("cV").checked, unit: val("cU"), warn: Number($("cW").value) || 0, low: lo === "" ? "" : +lo, high: hi === "" ? "" : +hi };
     saveSettings({ checks: id ? checks().map(x => x.id === id ? n : x) : checks().concat(n) });
-    toast("Saved. His reminders update next time the app is open.");
+    toast("Saved");
   });
 }
 function todoSheet(id) {
@@ -253,22 +300,12 @@ function goTab(name) {
 document.addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return; const d = b.dataset;
   if (d.tab) { goTab(d.tab); if (d.add) apptSheet(null); }
+  else if (d.log) logSheet(d.log);
   else if (d.eappt) apptSheet(d.eappt);
   else if (d.echeck) checkSheet(d.echeck);
   else if (d.tedit) todoSheet(d.tedit);
   else if (d.ldel) { if (b.textContent !== "Sure?") { b.textContent = "Sure?"; return; } D.deleteLog(d.ldel); }
-  else if (d.devdel) { if (b.textContent !== "Tap again to disconnect") { b.textContent = "Tap again to disconnect"; return; } D.removeDevice(d.devdel); toast("Device disconnected"); }
   else if (d.famdel) { if (b.textContent !== "Tap again to remove") { b.textContent = "Tap again to remove"; return; } D.removeFamily(d.famdel); toast("Removed"); }
-});
-$("devForm").addEventListener("submit", async e => {
-  e.preventDefault(); $("devMsg").textContent = "";
-  const code = val("devCode").toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (code.length !== 6) { $("devMsg").textContent = "The code has 6 letters and numbers, like K7Q-4MX."; return; }
-  try {
-    const ok = await D.connectDevice(code, val("devName") || "Brian's device", me());
-    if (ok) { $("devCode").value = ""; $("devName").value = ""; toast("Connected. Brian's app opens by itself."); }
-    else $("devMsg").textContent = "No device is showing that code. Check it and try again.";
-  } catch (err) { console.error(err); $("devMsg").textContent = "That didn't work. Check your connection and try again."; }
 });
 $("famForm").addEventListener("submit", e => {
   e.preventDefault(); const em = val("famEmail").toLowerCase();
@@ -291,11 +328,20 @@ $("nameSave").addEventListener("click", () => { if (val("nameIn")) { saveSetting
 $("todoForm").addEventListener("submit", e => {
   e.preventDefault(); const text = val("todoIn"); if (!text) return;
   D.saveTodo({ id: D.newId(), text, due: "", done: false, by: me() || "Family", created: new Date().toISOString() }); $("todoIn").value = "";
-  toast("Added to Brian's list");
+  toast("To-do added");
 });
 $("copyLog").addEventListener("click", () => {
   const lines = [...S.logs].reverse().filter(l => Date.now() - new Date(l.at) < 14 * 864e5).map(l => `${l.local}  ${l.name}${valueText(l) ? ": " + valueText(l) : ""}${l.note ? ` (${l.note})` : ""}`);
   copyText(`Brian's log, last 14 days (his time)\n` + (lines.join("\n") || "Nothing logged."), "copyMsg");
 });
 $("signOut").addEventListener("click", () => D.signOut());
+$("logOther").addEventListener("click", otherSheet);
+window.addEventListener("online", () => $("offline").hidden = true);
+window.addEventListener("offline", () => $("offline").hidden = false);
+if (!navigator.onLine) $("offline").hidden = false;
+// Pandas: next to the greeting and beside the love notes
+$("hpanda").innerHTML = pandaFace(54);
+document.querySelectorAll(".love").forEach(p => p.insertAdjacentHTML("afterbegin", pandaHeart(56)));
+// Works offline and opens fast from the home screen
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 setInterval(() => { if (!sheet.isOpen()) renderAll(); else renderHeader(); }, 30000);

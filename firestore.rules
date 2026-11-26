@@ -18,6 +18,11 @@ service cloud.firestore {
     match /hobbies/{id}    { allow read, write: if anyone(); }
     match /todos/{id}      { allow read, write: if anyone(); }
 
+    // Deborah's notes, daily diary and care info sheet: family only
+    match /notes/{id}      { allow read, write: if isFamily(); }
+    match /diary/{id}      { allow read, write: if isFamily(); }
+    match /care/{id}       { allow read, write: if isFamily(); }
+
     match /family/{em}     { allow read, write: if isFamily(); }
     match /devices/{uid}   { allow read: if isFamily() || (request.auth != null && request.auth.uid == uid);
                              allow write: if isFamily(); }
