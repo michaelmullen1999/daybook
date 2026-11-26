@@ -110,3 +110,4 @@ td.tm{white-space:nowrap;width:5.5em}
 .pend{font-size:13px;color:var(--soft);font-weight:400}
 @media(prefers-reduced-motion:no-preference){.dot.due{animation:p 2.4s ease-in-out infinite}@keyframes p{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--due) 25%,transparent)}}}
 @media(max-width:600px){.tl-hours,.tl-row{grid-template-columns:6em minmax(0,1fr)}.appt{grid-template-columns:5.5em minmax(0,1fr)}.appt>button{grid-column:2;justify-self:start}.two{grid-template-columns:minmax(0,1fr)}}
+.love{text-align:center;color:var(--soft);font-size:17px;margin:44px 0 8px}
