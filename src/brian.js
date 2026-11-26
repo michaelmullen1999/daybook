@@ -1,7 +1,8 @@
 // Brian's tablet app
 import * as D from "./data.js";
 import { SHARED_WITH, BRIAN_TIMEZONE as TZ } from "./config.js";
-import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, zonedToDate, makeSheet, val, copyText } from "./util.js";
+import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, zonedToDate, makeSheet, val, copyText, themeSwitch } from "./util.js";
+themeSwitch();
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 

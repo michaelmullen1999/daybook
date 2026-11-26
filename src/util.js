@@ -66,3 +66,18 @@ export async function copyText(text, msgEl) {
   try { await navigator.clipboard.writeText(text); $(msgEl).textContent = "Copied."; }
   catch { $(msgEl).textContent = "Couldn't copy on this device."; }
 }
+
+// Light / dark / auto switch (remembered on this device)
+export function themeSwitch() {
+  const get = () => { try { return localStorage.getItem("daybook-theme") || "auto"; } catch { return "auto"; } };
+  const apply = t => {
+    if (t === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+    document.querySelectorAll("[data-theme-set]").forEach(b => b.setAttribute("aria-pressed", b.dataset.themeSet === t ? "true" : "false"));
+  };
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-theme-set]"); if (!b) return;
+    try { localStorage.setItem("daybook-theme", b.dataset.themeSet); } catch {}
+    apply(b.dataset.themeSet);
+  });
+  apply(get());
+}

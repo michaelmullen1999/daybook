@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Daybook</title>
+<script>try{var t=localStorage.getItem("daybook-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -75,6 +76,9 @@
   <p class="small">Using the app on a phone and a tablet? Turn this off on one so you don't get every reminder twice.</p>
   <p id="remStatus"></p>
   <div class="row-btns"><button id="remFix" hidden>Allow on-time reminders</button><button id="remTest" hidden>Send a test reminder</button></div>
+  <h2>Appearance</h2>
+  <div class="seg" role="group" aria-label="Appearance"><button data-theme-set="auto">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div>
+  <p class="small">Auto follows the device's own light or dark setting.</p>
   <h2>Who can see this</h2>
   <p id="sharedWith"></p>
   <p class="small">Check times are set by the family. Ask the family if they need changing.</p>

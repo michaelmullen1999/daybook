@@ -1,7 +1,8 @@
 // Family page: Deborah, Nicole and Levi manage Brian's appointments, checks and to-dos.
 import * as D from "./data.js";
 import { BRIAN_TIMEZONE, FAMILY, OWNERS } from "./config.js";
-import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, makeSheet, val, copyText } from "./util.js";
+import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, makeSheet, val, copyText, themeSwitch } from "./util.js";
+themeSwitch();
 
 const S = { settings: null, appts: [], logs: [], hobbies: [], todos: [], devices: [], family: [] };
 const sheet = makeSheet();

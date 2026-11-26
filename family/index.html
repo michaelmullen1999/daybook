@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>Brian's Daybook: family</title>
+<script>try{var t=localStorage.getItem("daybook-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -88,6 +89,7 @@
 </section>
 
 <section style="margin-top:40px">
+  <div class="seg" role="group" aria-label="Appearance"><button data-theme-set="auto">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div>
   <p class="small"><span id="who"></span> <button class="link" id="signOut">Sign out</button></p>
 </section>
 </main>

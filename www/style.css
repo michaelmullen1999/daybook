@@ -3,11 +3,9 @@
    PICTURE: today's timeline strip, every check as a mark, done or due, with a "now" line.
    COLOUR and TYPE: white or near-black ground, deep ink, one blue, amber for due. Atkinson Hyperlegible.
    LAYOUT: tabs across the top, one column in portrait, two in landscape. */
-:root{color-scheme:light dark;
---bg:light-dark(#ffffff,#0f1317);--ink:light-dark(#111a22,#edf2f6);--soft:light-dark(#566572,#a9b6c0);
---card:light-dark(#f3f6f9,#182027);--line:light-dark(#dbe3ea,#28323b);
---blue:light-dark(#1f5fd1,#7fb0ff);--due:light-dark(#b86a00,#ffb547);--dueBg:light-dark(#fff4e0,#2d2312);
---miss:light-dark(#b3382c,#ff8a7d);--ok:light-dark(#111a22,#edf2f6)}
+:root{color-scheme:light;--bg:#ffffff;--ink:#111a22;--soft:#566572;--card:#f3f6f9;--line:#dbe3ea;--blue:#1f5fd1;--due:#b86a00;--dueBg:#fff4e0;--miss:#b3382c;--ok:#111a22}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#0f1317;--ink:#edf2f6;--soft:#a9b6c0;--card:#182027;--line:#28323b;--blue:#7fb0ff;--due:#ffb547;--dueBg:#2d2312;--miss:#ff8a7d;--ok:#edf2f6}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#0f1317;--ink:#edf2f6;--soft:#a9b6c0;--card:#182027;--line:#28323b;--blue:#7fb0ff;--due:#ffb547;--dueBg:#2d2312;--miss:#ff8a7d;--ok:#edf2f6}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.5 "Atkinson Hyperlegible",Verdana,system-ui,sans-serif;overflow-x:clip;-webkit-text-size-adjust:100%}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -111,3 +109,4 @@ td.tm{white-space:nowrap;width:5.5em}
 @media(prefers-reduced-motion:no-preference){.dot.due{animation:p 2.4s ease-in-out infinite}@keyframes p{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--due) 25%,transparent)}}}
 @media(max-width:600px){.tl-hours,.tl-row{grid-template-columns:6em minmax(0,1fr)}.appt{grid-template-columns:5.5em minmax(0,1fr)}.appt>button{grid-column:2;justify-self:start}.two{grid-template-columns:minmax(0,1fr)}}
 .love{text-align:center;color:var(--soft);font-size:17px;margin:44px 0 8px}
+.seg{display:inline-flex;border:2px solid var(--line);border-radius:14px;overflow:hidden}.seg button{border:0;border-radius:0;background:var(--bg);min-width:84px}.seg button[aria-pressed=true]{background:var(--blue);color:var(--bg)}
