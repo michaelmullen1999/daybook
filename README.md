@@ -39,6 +39,11 @@ Change anything on GitHub and it rebuilds by itself, in about 5 minutes.
 - **The family page** updates on its own.
 - **App updates:** when his app opens, it checks for a newer version. If there is one, it shows **"An update to Daybook is ready"**. Tap **Install update**, wait for the download, tap it, then tap **Install**. His data is kept. You can also go to **Settings → Check for updates**.
 
+## Features added
+- **Reminder buttons:** pill reminders have a **Taken** button. Reading reminders have **Log it**, where he types the number. If he's already logged it recently, the app opens the normal form with the warning instead.
+- **Repeats:** appointments can repeat every week, every 2 weeks or every month. To-dos can repeat every day, week, 2 weeks or month. A repeating to-do moves to its next date when it's ticked.
+- **Blood sugar chart:** on the family page Overview and in his Log, for 7 or 14 days. Set his doctor's target range under **Checks → Edit**. Readings outside it show in red.
+
 ## Good to know
 
 - Brian's app tells him who can see his log, under **Settings → Who can see this**.

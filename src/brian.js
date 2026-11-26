@@ -1,7 +1,7 @@
 // Brian's tablet app
 import * as D from "./data.js";
 import { SHARED_WITH, BRIAN_TIMEZONE as TZ } from "./config.js";
-import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, zonedToDate, makeSheet, val, copyText, themeSwitch } from "./util.js";
+import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, zonedToDate, makeSheet, val, copyText, themeSwitch, nextDate, occurrences, repeatLabel, REPEAT_OPTIONS, tickTodo, addDays, drawReadings, inRangeText } from "./util.js";
 themeSwitch();
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -33,7 +33,7 @@ function startApp() {
   started = true; $("gate").hidden = true; $("app").hidden = false;
   try { localStorage.removeItem("daybook-code"); } catch {}
   const onErr = err => { console.error(err); $("offline").textContent = "Can't load the Daybook right now. Check the internet connection."; $("offline").hidden = false; };
-  ["settings", "appts", "logs", "hobbies", "todos"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; renderAll(); if (n === "settings" || n === "appts") scheduleSoon(); }, onErr)));
+  ["settings", "appts", "logs", "hobbies", "todos"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; renderAll(); if (n === "settings" || n === "appts") scheduleSoon(); if (n === "logs" || n === "settings") setTimeout(runPendingAction, 0); }, onErr)));
   renderAll();
 }
 function stopApp() { started = false; unsubs.splice(0).forEach(f => f()); }
@@ -83,13 +83,14 @@ function renderToday() {
 
   $("checks").innerHTML = all.length ? all.map(x => {
     const ll = lastLog(x.c.id), isDue = x.slots.some(s => s.st === "due");
-    const lastTxt = ll ? `Last logged ${ago(Date.now() - logTime(ll))} (${fmt12(ll.local.slice(11))}${valueText(ll, x.c.unit) ? ", " + esc(valueText(ll, x.c.unit)) : ""})` : "Not logged yet";
+    const flag = ll ? inRangeText(ll.value, x.c) : "";
+    const lastTxt = ll ? `Last logged ${ago(Date.now() - logTime(ll))} (${fmt12(ll.local.slice(11))}${valueText(ll, x.c.unit) ? ", " + esc(valueText(ll, x.c.unit)) : ""}${flag ? `, <span class="flag">${flag}</span>` : ""})` : "Not logged yet";
     return `<div class="item"><div><div class="t">${esc(x.c.name)}</div><div class="s ${isDue ? "duec" : ""}">${isDue ? "Due now. " : ""}${lastTxt}</div></div>
       <button class="pri" data-log="${esc(x.c.id)}">Log</button>
       <div class="slots">${x.slots.map(s => `<span class="chip ${s.st}">${fmt12(s.t)}${s.st === "done" ? " ✓" : s.st === "missed" ? " – missed" : ""}</span>`).join("")}</div></div>`;
   }).join("") : `<p class="empty">No checks set yet.</p>`;
 
-  const up = S.appts.filter(a => apptKey(a) >= `${tk} 00:00`).sort((a, b) => apptKey(a).localeCompare(apptKey(b))).slice(0, 3);
+  const up = upcomingAppts(tk).slice(0, 3);
   $("soonAppts").innerHTML = up.length ? up.map(a => apptRow(a, tk)).join("") : `<p class="empty">No appointments coming up.</p>`;
 
   const open = S.todos.filter(t => !t.done).sort(todoSort).slice(0, 5);
@@ -97,16 +98,17 @@ function renderToday() {
   if (document.activeElement !== $("notes")) { try { $("notes").value = localStorage.getItem("daybook-notes") || ""; } catch {} }
 }
 
+const upcomingAppts = tk => S.appts.map(a => ({ ...a, start: a.date, date: nextDate(a.date, a.repeat, tk) })).filter(a => a.date >= tk).sort((a, b) => apptKey(a).localeCompare(apptKey(b)));
 function apptRow(a, tk) {
   const p = prettyDate(a.date), rel = relDay(tk, a.date);
   const soon = rel === "Today" || rel === "Tomorrow";
   return `<div class="appt"><div class="d">${p.short}<small>${p.day.slice(0, 3)}${a.time ? " · " + fmt12(a.time) : ""}</small></div>
-  <div><div class="t">${esc(a.title)}</div><div class="s ${soon ? "soon" : ""}">${rel}</div>
+  <div><div class="t">${esc(a.title)}${a.repeat ? `<span class="rep">${esc(repeatLabel(a.repeat, a.start || a.date))}</span>` : ""}</div><div class="s ${soon ? "soon" : ""}">${rel}</div>
   ${a.where ? `<div class="s">${esc(a.where)}</div>` : ""}${a.with ? `<div class="s">With ${esc(a.with)}</div>` : ""}${a.notes ? `<div class="s">${esc(a.notes)}</div>` : ""}</div></div>`;
 }
 function renderAppts() {
   const tk = todayKey(), s = [...S.appts].sort((a, b) => apptKey(a).localeCompare(apptKey(b)));
-  const up = s.filter(a => a.date >= tk), past = s.filter(a => a.date < tk).reverse().slice(0, 15);
+  const up = upcomingAppts(tk), past = s.filter(a => !a.repeat && a.date < tk).reverse().slice(0, 15);
   $("apptList").innerHTML = up.length ? up.map(a => apptRow(a, tk)).join("") : `<p class="empty">Nothing booked.</p>`;
   $("pastList").innerHTML = past.length ? past.map(a => apptRow(a, tk)).join("") : `<p class="empty">None yet.</p>`;
 }
@@ -114,7 +116,7 @@ function renderAppts() {
 const todoSort = (a, b) => (a.due || "9999").localeCompare(b.due || "9999") || (a.created || "").localeCompare(b.created || "");
 function todoRow(t, tk) {
   const overdue = t.due && !t.done && t.due < tk;
-  const meta = [t.due ? (overdue ? `Was due ${prettyDate(t.due).short}` : `Due ${relDay(tk, t.due).toLowerCase()}`) : "", t.by && t.by !== "Brian" ? `Added by ${t.by}` : ""].filter(Boolean).join(" · ");
+  const meta = [t.due ? (overdue ? `Was due ${prettyDate(t.due).short}` : `Due ${relDay(tk, t.due).toLowerCase()}`) : "", t.repeat ? repeatLabel(t.repeat, t.due || tk) : "", t.by && t.by !== "Brian" ? `Added by ${t.by}` : ""].filter(Boolean).join(" · ");
   return `<div class="todo ${t.done ? "done" : ""}"><label><input type="checkbox" data-tick="${esc(t.id)}" ${t.done ? "checked" : ""}><span>${esc(t.text)}<span class="meta ${overdue ? "soon" : ""}">${esc(meta)}</span></span></label>
     <button class="link" data-tedit="${esc(t.id)}">Edit</button></div>`;
 }
@@ -136,11 +138,39 @@ function renderHobbies() {
     <div class="row-btns"><button class="pri" data-hdone="${esc(h.id)}">Did this today</button><button data-hdel="${esc(h.id)}">Remove</button></div></div>`).join("") : `<p class="empty">No hobbies yet. Add one.</p>`;
 }
 
+/* ---------- readings chart (Log tab) ---------- */
+let chartDays = 7;
+const wallMs = l => { const [d, t] = l.local.split(" "); const [y, m, dd] = d.split("-").map(Number); const [h, mi] = t.split(":").map(Number); return Date.UTC(y, m - 1, dd, h, mi); };
+function renderCharts(tk) {
+  const box = $("logCharts"); if (!box) return;
+  const vc = checks().filter(c => c.value), ranged = vc.filter(c => (c.low !== "" && c.low != null) || (c.high !== "" && c.high != null));
+  const list = ranged.length ? ranged : vc.slice(0, 1);
+  if (!list.length) { box.innerHTML = ""; return; }
+  const [y, m, d] = addDays(tk, -(chartDays - 1)).split("-").map(Number), fromMs = Date.UTC(y, m - 1, d), toMs = fromMs + chartDays * 864e5;
+  box.innerHTML = list.map(c => {
+    const hasRange = (c.low !== "" && c.low != null) || (c.high !== "" && c.high != null);
+    return `<div class="chartbox"><div class="hd"><h3>${esc(c.name)}</h3>
+      <div class="seg small-seg" role="group" aria-label="Chart length"><button data-days="7" aria-pressed="${chartDays === 7}">7 days</button><button data-days="14" aria-pressed="${chartDays === 14}">14 days</button></div></div>
+      <svg class="chart" data-chart="${esc(c.id)}" role="img" aria-label="${esc(c.name)} readings chart"></svg>
+      <p class="chartnote">${hasRange ? `Shaded band: your target, ${esc(c.low ?? "")}–${esc(c.high ?? "")} ${esc(c.unit || "")}.` : "Each dot is a reading."}</p></div>`;
+  }).join("");
+  const draw = () => list.forEach(c => {
+    const svg = box.querySelector(`[data-chart="${CSS.escape(c.id)}"]`); if (!svg) return;
+    const pts = S.logs.filter(l => l.check === c.id && l.local && !isNaN(parseFloat(l.value))).map(l => ({ t: wallMs(l), v: parseFloat(l.value), label: `${l.local.slice(5)}  ${l.value} ${c.unit || ""}` }));
+    drawReadings(svg, pts, { low: c.low, high: c.high, unit: c.unit, fromMs, toMs });
+  });
+  draw();
+  if (!box._ro) { box._ro = new ResizeObserver(() => box._redraw && box._redraw()); box._ro.observe(box); }
+  box._redraw = draw;
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-days]"); if (!b) return; chartDays = +b.dataset.days; renderCharts(todayKey()); });
+
 function renderLog() {
   const tk = todayKey(), by = {};
+  renderCharts(tk);
   S.logs.forEach(l => { const k = (l.local || "").slice(0, 10); if (!k) return; const n = daysBetween(k, tk); if (n >= 0 && n <= 14) (by[k] = by[k] || []).push(l); });
   const keys = Object.keys(by).sort().reverse();
-  $("logList").innerHTML = keys.length ? keys.map(k => { const p = prettyDate(k); return `<div class="day"><h3>${relDay(tk, k)} · ${p.long}</h3><table>${by[k].map(l => `<tr><td class="tm">${fmt12(l.local.slice(11))}</td><td>${esc(l.name)}${l.pending ? ` <span class="pend">(not sent yet)</span>` : ""}${l.note ? `<div class="small">${esc(l.note)}</div>` : ""}</td><td class="n">${esc(valueText(l))}</td><td style="width:1%"><button class="link" data-ldel="${esc(l.id)}">Delete</button></td></tr>`).join("")}</table></div>`; }).join("") : `<p class="empty">Nothing logged in the last 14 days.</p>`;
+  $("logList").innerHTML = keys.length ? keys.map(k => { const p = prettyDate(k); return `<div class="day"><h3>${relDay(tk, k)} · ${p.long}</h3><table>${by[k].map(l => `<tr><td class="tm">${fmt12(l.local.slice(11))}</td><td>${esc(l.name)}${l.pending ? ` <span class="pend">(not sent yet)</span>` : ""}${l.note ? `<div class="small">${esc(l.note)}</div>` : ""}</td><td class="n">${esc(valueText(l))}${(() => { const c = checks().find(x => x.id === l.check); const f = c ? inRangeText(l.value, c) : ""; return f ? `<div class="flag small">${f}</div>` : ""; })()}</td><td style="width:1%"><button class="link" data-ldel="${esc(l.id)}">Delete</button></td></tr>`).join("")}</table></div>`; }).join("") : `<p class="empty">Nothing logged in the last 14 days.</p>`;
 }
 
 function renderSettings() {
@@ -166,13 +196,13 @@ function writeLog({ check, name, unit, value, note, time }) {
   D.addLog(l); toast(`${name} logged at ${fmt12(t)}`, l.id);
 }
 
-function logSheet(id) {
+function logSheet(id, prefill) {
   const c = checks().find(x => x.id === id); if (!c) return;
   const ll = lastLog(id), w = now();
   const recent = ll && (Date.now() - logTime(ll)) < (Number(c.warn) || 0) * 3600e3;
   sheet.open(`<h3>Log ${esc(c.name)}</h3>
    ${recent ? `<div class="warn"><b>Already logged ${ago(Date.now() - logTime(ll))}</b>, at ${fmt12(ll.local.slice(11))}${valueText(ll, c.unit) ? ` (${esc(valueText(ll, c.unit))})` : ""}. Check before you log it again.</div>` : ""}
-   ${c.value ? `<label for="fVal">Reading or amount${c.unit ? ` (${esc(c.unit)})` : ""}</label><input id="fVal" inputmode="decimal">` : ""}
+   ${c.value ? `<label for="fVal">Reading or amount${c.unit ? ` (${esc(c.unit)})` : ""}</label><input id="fVal" inputmode="decimal" value="${esc(prefill || "")}">` : ""}
    <label for="fTime">Time</label><input id="fTime" type="time" value="${hmOf(w)}">
    <label for="fNote">Note (optional)</label><input id="fNote">
    <div class="acts"><button data-act="cancel">Cancel</button><button class="pri" data-act="save">${recent ? "Log it anyway" : "Save"}</button></div>`, () => {
@@ -200,11 +230,14 @@ function otherSheet() {
 function todoSheet(id) {
   const t = S.todos.find(x => x.id === id); if (!t) return;
   sheet.open(`<h3>Edit to-do</h3><label for="tT">What</label><input id="tT" value="${esc(t.text)}">
-   <label for="tD">Due date (optional)</label><input id="tD" type="date" value="${esc(t.due || "")}">
+   <div class="two"><div><label for="tD">Due date</label><input id="tD" type="date" value="${esc(t.due || "")}"></div>
+   <div><label for="tR">Repeats</label><select id="tR">${REPEAT_OPTIONS(true, t.repeat)}</select></div></div>
+   <p class="small">A repeating to-do moves to its next date when you tick it.</p>
    <div class="acts"><button data-act="delete">Delete</button><button data-act="cancel">Cancel</button><button class="pri" data-act="save">Save</button></div>`, mode => {
     if (mode === "delete") return D.deleteTodo(id);
     if (!val("tT")) { sheet.msg("Type what needs doing."); return false; }
-    D.saveTodo({ ...t, text: val("tT"), due: val("tD") });
+    const rep = $("tR").value;
+    D.saveTodo({ ...t, text: val("tT"), due: val("tD") || (rep ? todayKey() : ""), repeat: rep, done: rep ? false : t.done });
   });
 }
 function hobSheet() {
@@ -232,7 +265,9 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("change", e => {
   const id = e.target.dataset && e.target.dataset.tick; if (!id) return;
-  const t = S.todos.find(x => x.id === id); if (t) D.saveTodo({ ...t, done: e.target.checked, doneAt: e.target.checked ? new Date().toISOString() : null });
+  const t = S.todos.find(x => x.id === id); if (!t) return;
+  const r = tickTodo(t, e.target.checked, todayKey()); D.saveTodo(r.todo);
+  if (r.next) toast(`Done. Next time: ${prettyDate(r.next).long}`);
 });
 $("todoForm").addEventListener("submit", e => {
   e.preventDefault(); const text = val("todoIn"); if (!text) return;
@@ -281,17 +316,22 @@ async function scheduleAll() {
     try { remState.exact = (await LocalNotifications.checkExactNotificationSetting()).exact_alarm; } catch { remState.exact = "granted"; }
     if (remState.perm !== "granted") return renderReminderStatus();
     await LocalNotifications.createChannel({ id: "daybook", name: "Daybook reminders", importance: 5, vibration: true, visibility: 1 }).catch(() => {});
+    await LocalNotifications.registerActionTypes({ types: [
+      { id: "dbk-value", actions: [{ id: "reading", title: "Log it", input: true }] },
+      { id: "dbk-taken", actions: [{ id: "taken", title: "Taken" }] }
+    ] }).catch(() => {});
     await LocalNotifications.cancelAll();
     const list = [];
     const w = now(), dev = wall("");
     const shift = Math.round((Date.UTC(dev.y, dev.mo - 1, dev.d, dev.h, dev.mi) - Date.UTC(w.y, w.mo - 1, w.d, w.h, w.mi)) / 60000);
     checks().forEach(c => c.times.forEach(t => {
       const dm = ((mins(t) + shift) % 1440 + 1440) % 1440, h = Math.floor(dm / 60), m = dm % 60;
-      list.push({ id: hash(`c|${c.id}|${t}`), title: c.name, body: `Time for your ${c.name.toLowerCase()} (${fmt12(t)}). Tap to log it.`, channelId: "daybook",
-        schedule: { on: { hour: h, minute: m }, allowWhileIdle: true }, extra: { check: c.id } });
+      list.push({ id: hash(`c|${c.id}|${t}`), title: c.name, body: c.value ? `Time for your ${c.name.toLowerCase()} (${fmt12(t)}). Tap "Log it" to type the number.` : `Time for your ${c.name.toLowerCase()} (${fmt12(t)}). Tap "Taken" when done.`, channelId: "daybook",
+        schedule: { on: { hour: h, minute: m }, allowWhileIdle: true }, extra: { check: c.id }, actionTypeId: c.value ? "dbk-value" : "dbk-taken" });
     }));
     const soon = Date.now() + 60e3, limit = Date.now() + 60 * 864e5;
-    S.appts.forEach(a => {
+    const tk0 = todayKey();
+    S.appts.flatMap(a => occurrences(a.date, a.repeat, tk0, addDays(tk0, 60)).map(date => ({ ...a, date, id: `${a.id}|${date}` }))).forEach(a => {
       const [y, mo, d] = a.date.split("-").map(Number), [h, mi] = (a.time || "09:00").split(":").map(Number);
       const when = zonedToDate(TZ, y, mo, d, h, mi);
       const pd = new Date(Date.UTC(y, mo - 1, d - 1)), eve = zonedToDate(TZ, pd.getUTCFullYear(), pd.getUTCMonth() + 1, pd.getUTCDate(), 18, 0);
@@ -309,7 +349,8 @@ $("remOn").addEventListener("change", e => { try { localStorage.setItem("daybook
 if (native) {
   LocalNotifications.addListener("localNotificationActionPerformed", a => {
     const id = a.notification && a.notification.extra && a.notification.extra.check;
-    goTab("today"); if (id) setTimeout(() => logSheet(id), 300);
+    pendingAction = { id, actionId: a.actionId, input: a.inputValue };
+    runPendingAction();
   });
   $("remFix").addEventListener("click", async () => {
     if (remState.perm !== "granted") await scheduleAll();
@@ -320,6 +361,21 @@ if (native) {
     toast("Test reminder in 5 seconds");
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleSoon(); });
+}
+
+/* ---------- buttons on reminders ("Taken" / "Log it") ---------- */
+let pendingAction = null;
+function runPendingAction() {
+  if (!pendingAction) return;
+  if (!started || !S.settings) return; // try again once the app has loaded
+  const { id, actionId, input } = pendingAction; pendingAction = null;
+  goTab("today");
+  const c = checks().find(x => x.id === id); if (!c) return;
+  const ll = lastLog(c.id), recent = ll && (Date.now() - logTime(ll)) < (Number(c.warn) || 0) * 3600e3;
+  const num = input != null ? String(input).trim().replace(",", ".") : "";
+  const quick = (actionId === "taken" && !c.value) || (actionId === "reading" && c.value && num !== "" && !isNaN(parseFloat(num)));
+  if (quick && !recent) { writeLog({ check: c.id, name: c.name, unit: c.unit, value: c.value ? num : "", note: "" }); return; }
+  setTimeout(() => logSheet(c.id, num), 300); // already logged recently, or nothing typed: show the full form with its warning
 }
 
 /* ---------- clock ---------- */

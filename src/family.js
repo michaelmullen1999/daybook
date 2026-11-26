@@ -1,7 +1,7 @@
 // Family page: Deborah, Nicole and Levi manage Brian's appointments, checks and to-dos.
 import * as D from "./data.js";
 import { BRIAN_TIMEZONE, FAMILY, OWNERS } from "./config.js";
-import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, makeSheet, val, copyText, themeSwitch } from "./util.js";
+import { $, esc, pad, DAYS, MON, mins, fmt12, wall, dayKey, hmOf, relDay, daysBetween, prettyDate, ago, slotsFor, valueText, makeSheet, val, copyText, themeSwitch, nextDate, repeatLabel, REPEAT_OPTIONS, tickTodo, addDays, drawReadings, inRangeText } from "./util.js";
 themeSwitch();
 
 const S = { settings: null, appts: [], logs: [], hobbies: [], todos: [], devices: [], family: [] };
@@ -83,23 +83,59 @@ function renderOverview() {
       <div class="slots">${x.slots.map(s => `<span class="chip ${s.st}">${fmt12(s.t)}${s.st === "done" ? " ✓" : s.st === "missed" ? " – missed" : ""}</span>`).join("")}</div></div>`;
   }).join("") : `<p class="empty">No checks set.</p>`;
 
-  const up = S.appts.filter(a => a.date >= tk).sort((a, b) => apptKey(a).localeCompare(apptKey(b))).slice(0, 3);
+  const up = upcomingAppts(tk).slice(0, 3);
+  renderCharts(tk);
   $("ovAppts").innerHTML = up.length ? up.map(a => apptRow(a, tk, true)).join("") : `<p class="empty">Nothing booked.</p>`;
   const open = S.todos.filter(t => !t.done).sort(todoSort);
   $("ovTodos").innerHTML = open.length ? open.slice(0, 5).map(t => todoRow(t, tk)).join("") + (open.length > 5 ? `<button class="link" data-tab="todo">See all ${open.length}</button>` : "") : `<p class="empty">Nothing on his list.</p>`;
 }
 
+/* ---------- readings charts ---------- */
+let chartDays = 14;
+function chartChecks() {
+  const vc = checks().filter(c => c.value);
+  const ranged = vc.filter(c => (c.low !== "" && c.low != null) || (c.high !== "" && c.high != null));
+  return ranged.length ? ranged : vc.slice(0, 1);
+}
+const wallMs = l => { const [d, t] = l.local.split(" "); const [y, m, dd] = d.split("-").map(Number); const [h, mi] = t.split(":").map(Number); return Date.UTC(y, m - 1, dd, h, mi); };
+function renderCharts(tk) {
+  const box = $("ovCharts"); if (!box) return;
+  const list = chartChecks();
+  if (!list.length) { box.innerHTML = ""; return; }
+  const [y, m, d] = addDays(tk, -(chartDays - 1)).split("-").map(Number), fromMs = Date.UTC(y, m - 1, d), toMs = fromMs + chartDays * 864e5;
+  box.innerHTML = list.map(c => {
+    const logs = S.logs.filter(l => l.check === c.id && l.local && !isNaN(parseFloat(l.value)) && wallMs(l) >= fromMs);
+    const outs = logs.filter(l => inRangeText(l.value, c));
+    const hasRange = (c.low !== "" && c.low != null) || (c.high !== "" && c.high != null);
+    return `<div class="chartbox"><div class="hd"><h3>${esc(c.name)}, last ${chartDays} days</h3>
+      <div class="seg small-seg" role="group" aria-label="Chart length"><button data-days="7" aria-pressed="${chartDays === 7}">7 days</button><button data-days="14" aria-pressed="${chartDays === 14}">14 days</button></div></div>
+      <svg class="chart" data-chart="${esc(c.id)}" role="img" aria-label="${esc(c.name)} readings chart"></svg>
+      <p class="chartnote">${hasRange ? `Shaded band: target ${esc(c.low ?? "")}–${esc(c.high ?? "")} ${esc(c.unit || "")}. ` : "Add a target range under Checks to see it here. "}${logs.length ? `${logs.length} readings` : "No readings yet"}${hasRange && logs.length ? `, <span class="${outs.length ? "flag" : ""}">${outs.length} outside target</span>` : ""}.</p></div>`;
+  }).join("");
+  const draw = () => list.forEach(c => {
+    const svg = box.querySelector(`[data-chart="${CSS.escape(c.id)}"]`); if (!svg) return;
+    const pts = S.logs.filter(l => l.check === c.id && l.local && !isNaN(parseFloat(l.value))).map(l => ({ t: wallMs(l), v: parseFloat(l.value), label: `${l.local.slice(5)}  ${l.value} ${c.unit || ""}` }));
+    drawReadings(svg, pts, { low: c.low, high: c.high, unit: c.unit, fromMs, toMs });
+  });
+  draw();
+  if (!box._ro) { box._ro = new ResizeObserver(() => box._redraw && box._redraw()); box._ro.observe(box); }
+  box._redraw = draw;
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-days]"); if (!b) return; chartDays = +b.dataset.days; renderCharts(btk()); });
+
+// Upcoming appointments, with repeating ones shown at their next date
+const upcomingAppts = tk => S.appts.map(a => ({ ...a, start: a.date, date: nextDate(a.date, a.repeat, tk) })).filter(a => a.date >= tk).sort((a, b) => apptKey(a).localeCompare(apptKey(b)));
 function apptRow(a, tk, edit) {
   const p = prettyDate(a.date), rel = relDay(tk, a.date), soon = rel === "Today" || rel === "Tomorrow";
   return `<div class="appt"><div class="d">${p.short}<small>${p.day.slice(0, 3)}${a.time ? " · " + fmt12(a.time) : ""}</small></div>
-  <div><div class="t">${esc(a.title)}</div><div class="s ${soon ? "soon" : ""}">${rel}</div>
+  <div><div class="t">${esc(a.title)}${a.repeat ? `<span class="rep">${esc(repeatLabel(a.repeat, a.start || a.date))}</span>` : ""}</div><div class="s ${soon ? "soon" : ""}">${rel}</div>
   ${a.where ? `<div class="s">${esc(a.where)}</div>` : ""}${a.with ? `<div class="s">With ${esc(a.with)}</div>` : ""}${a.notes ? `<div class="s">${esc(a.notes)}</div>` : ""}
   ${a.by ? `<div class="s">Added by ${esc(a.by)}</div>` : ""}</div>
   ${edit ? `<button data-eappt="${esc(a.id)}">Edit</button>` : ""}</div>`;
 }
 function renderAppts() {
   const tk = btk(), s = [...S.appts].sort((a, b) => apptKey(a).localeCompare(apptKey(b)));
-  const up = s.filter(a => a.date >= tk), past = s.filter(a => a.date < tk).reverse().slice(0, 20);
+  const up = upcomingAppts(tk), past = s.filter(a => !a.repeat && a.date < tk).reverse().slice(0, 20);
   $("apptList").innerHTML = up.length ? up.map(a => apptRow(a, tk, true)).join("") : `<p class="empty">Nothing booked.</p>`;
   $("pastList").innerHTML = past.length ? past.map(a => apptRow(a, tk, true)).join("") : `<p class="empty">None yet.</p>`;
 }
@@ -107,7 +143,7 @@ function renderAppts() {
 const todoSort = (a, b) => (a.due || "9999").localeCompare(b.due || "9999") || (a.created || "").localeCompare(b.created || "");
 function todoRow(t, tk) {
   const overdue = t.due && !t.done && t.due < tk;
-  const meta = [t.due ? (overdue ? `Was due ${prettyDate(t.due).short}` : `Due ${relDay(tk, t.due).toLowerCase()}`) : "", t.by ? `Added by ${t.by}` : "", t.done && t.doneAt ? `Done ${ago(Date.now() - new Date(t.doneAt))}` : ""].filter(Boolean).join(" · ");
+  const meta = [t.due ? (overdue ? `Was due ${prettyDate(t.due).short}` : `Due ${relDay(tk, t.due).toLowerCase()}`) : "", t.repeat ? repeatLabel(t.repeat, t.due || tk) : "", t.lastDone ? `Last done ${ago(Date.now() - new Date(t.lastDone))}` : "", t.by ? `Added by ${t.by}` : "", t.done && t.doneAt ? `Done ${ago(Date.now() - new Date(t.doneAt))}` : ""].filter(Boolean).join(" · ");
   return `<div class="todo ${t.done ? "done" : ""}"><label><input type="checkbox" data-tick="${esc(t.id)}" ${t.done ? "checked" : ""}><span>${esc(t.text)}<span class="meta ${overdue ? "soon" : ""}">${esc(meta)}</span></span></label>
     <button class="link" data-tedit="${esc(t.id)}">Edit</button></div>`;
 }
@@ -120,7 +156,7 @@ function renderTodos() {
 }
 
 function renderChecks() {
-  $("checkList").innerHTML = checks().length ? checks().map(c => `<div class="item"><div><div class="t">${esc(c.name)}</div><div class="s">${c.times.map(fmt12).join(", ")}${c.value ? ` · records ${esc(c.unit || "a number")}` : ""}${Number(c.warn) ? ` · warn within ${esc(c.warn)} h` : ""}</div></div><button data-echeck="${esc(c.id)}">Edit</button></div>`).join("") : `<p class="empty">No checks yet.</p>`;
+  $("checkList").innerHTML = checks().length ? checks().map(c => `<div class="item"><div><div class="t">${esc(c.name)}</div><div class="s">${c.times.map(fmt12).join(", ")}${c.value ? ` · records ${esc(c.unit || "a number")}` : ""}${Number(c.warn) ? ` · warn within ${esc(c.warn)} h` : ""}${c.low !== "" && c.low != null || c.high !== "" && c.high != null ? ` · target ${esc(c.low ?? "")}–${esc(c.high ?? "")}` : ""}</div></div><button data-echeck="${esc(c.id)}">Edit</button></div>`).join("") : `<p class="empty">No checks yet.</p>`;
   $("seed").hidden = checks().length > 0;
   if (document.activeElement !== $("nameIn")) $("nameIn").value = (S.settings && S.settings.name) || "Brian";
 }
@@ -129,7 +165,7 @@ function renderLog() {
   const tk = btk(), by = {};
   S.logs.forEach(l => { const k = (l.local || "").slice(0, 10); if (!k) return; const n = daysBetween(k, tk); if (n >= 0 && n <= 14) (by[k] = by[k] || []).push(l); });
   const keys = Object.keys(by).sort().reverse();
-  $("logList").innerHTML = keys.length ? keys.map(k => { const p = prettyDate(k); return `<div class="day"><h3>${relDay(tk, k)} · ${p.long}</h3><table>${by[k].map(l => `<tr><td class="tm">${fmt12(l.local.slice(11))}</td><td>${esc(l.name)}${l.note ? `<div class="small">${esc(l.note)}</div>` : ""}</td><td class="n">${esc(valueText(l))}</td><td style="width:1%"><button class="link" data-ldel="${esc(l.id)}">Delete</button></td></tr>`).join("")}</table></div>`; }).join("") : `<p class="empty">Nothing logged in the last 14 days.</p>`;
+  $("logList").innerHTML = keys.length ? keys.map(k => { const p = prettyDate(k); return `<div class="day"><h3>${relDay(tk, k)} · ${p.long}</h3><table>${by[k].map(l => `<tr><td class="tm">${fmt12(l.local.slice(11))}</td><td>${esc(l.name)}${l.note ? `<div class="small">${esc(l.note)}</div>` : ""}</td><td class="n">${esc(valueText(l))}${(() => { const c = checks().find(x => x.id === l.check); const f = c ? inRangeText(l.value, c) : ""; return f ? `<div class="flag small">${f}</div>` : ""; })()}</td><td style="width:1%"><button class="link" data-ldel="${esc(l.id)}">Delete</button></td></tr>`).join("")}</table></div>`; }).join("") : `<p class="empty">Nothing logged in the last 14 days.</p>`;
 }
 
 function renderHobbies() {
@@ -150,17 +186,19 @@ function renderAll() {
 
 /* ---------- editors ---------- */
 function apptSheet(id) {
+  // a repeating appointment is edited from its first date
   const a = S.appts.find(x => x.id === id) || { date: btk(), time: "", title: "", where: "", with: "", notes: "" };
   sheet.open(`<h3>${id ? "Edit" : "Add"} appointment</h3>
    <label for="aT">What</label><input id="aT" value="${esc(a.title)}" placeholder="Diabetes clinic, dentist…">
    <div class="two"><div><label for="aD">Date</label><input id="aD" type="date" value="${esc(a.date)}"></div><div><label for="aH">Time (Brian's time)</label><input id="aH" type="time" value="${esc(a.time)}"></div></div>
+   <label for="aR">Repeats</label><select id="aR">${REPEAT_OPTIONS(false, a.repeat)}</select>
    <label for="aW">Where</label><input id="aW" value="${esc(a.where)}">
    <label for="aWith">Going with</label><input id="aWith" list="fam" value="${esc(a.with)}"><datalist id="fam">${FAMILY.map(f => `<option value="${esc(f)}">`).join("")}</datalist>
    <label for="aN">Notes for Brian</label><textarea id="aN" placeholder="Bring readings, fast from midnight…">${esc(a.notes)}</textarea>
    <div class="acts">${id ? `<button data-act="delete">Delete</button>` : ""}<button data-act="cancel">Cancel</button><button class="pri" data-act="save">Save</button></div>`, mode => {
     if (mode === "delete") { D.deleteAppt(id); return toast("Appointment deleted"); }
     if (!val("aT") || !val("aD")) { sheet.msg("Add what it is and the date."); return false; }
-    D.saveAppt({ id: id || D.newId(), title: val("aT"), date: val("aD"), time: val("aH"), where: val("aW"), with: val("aWith"), notes: val("aN"), by: a.by || me() });
+    D.saveAppt({ id: id || D.newId(), title: val("aT"), date: val("aD"), time: val("aH"), repeat: $("aR").value, where: val("aW"), with: val("aWith"), notes: val("aN"), by: a.by || me() });
     toast(id ? "Appointment updated" : "Appointment added. It's on Brian's tablet now.");
   });
 }
@@ -177,11 +215,17 @@ function checkSheet(id) {
    <label class="inline"><input type="checkbox" id="cV" ${c.value ? "checked" : ""}>He records a number each time</label>
    <div class="two"><div><label for="cU">Unit</label><input id="cU" value="${esc(c.unit)}" placeholder="mg/dL, units"></div>
    <div><label for="cW">Warn if logged again within (hours)</label><input id="cW" type="number" min="0" step="0.5" value="${esc(c.warn)}"></div></div>
+   <label>Target range from his doctor (optional)</label>
+   <div class="two"><div><label class="small" for="cLo">Low</label><input id="cLo" type="number" inputmode="decimal" value="${esc(c.low ?? "")}" placeholder="e.g. 80"></div>
+   <div><label class="small" for="cHi">High</label><input id="cHi" type="number" inputmode="decimal" value="${esc(c.high ?? "")}" placeholder="e.g. 180"></div></div>
+   <p class="small">Readings outside this range are highlighted on the chart and in the log. Leave blank for no range.</p>
    <div class="acts">${id ? `<button data-act="delete">Delete</button>` : ""}<button data-act="cancel">Cancel</button><button class="pri" data-act="save">Save</button></div>`, mode => {
     if (mode === "delete") return saveSettings({ checks: checks().filter(x => x.id !== id) });
     const times = parseTimes(val("cT"));
     if (!val("cN") || !times) { sheet.msg("Add a name and times like 08:00, 6:30 pm."); return false; }
-    const n = { id: id || D.newId(), name: val("cN"), times, value: $("cV").checked, unit: val("cU"), warn: Number($("cW").value) || 0 };
+    const lo = val("cLo"), hi = val("cHi");
+    if (lo !== "" && hi !== "" && +lo >= +hi) { sheet.msg("The low number should be smaller than the high number."); return false; }
+    const n = { id: id || D.newId(), name: val("cN"), times, value: $("cV").checked, unit: val("cU"), warn: Number($("cW").value) || 0, low: lo === "" ? "" : +lo, high: hi === "" ? "" : +hi };
     saveSettings({ checks: id ? checks().map(x => x.id === id ? n : x) : checks().concat(n) });
     toast("Saved. His reminders update next time the app is open.");
   });
@@ -189,11 +233,14 @@ function checkSheet(id) {
 function todoSheet(id) {
   const t = S.todos.find(x => x.id === id); if (!t) return;
   sheet.open(`<h3>Edit to-do</h3><label for="tT">What</label><input id="tT" value="${esc(t.text)}">
-   <label for="tD">Due date (optional)</label><input id="tD" type="date" value="${esc(t.due || "")}">
+   <div class="two"><div><label for="tD">Due date</label><input id="tD" type="date" value="${esc(t.due || "")}"></div>
+   <div><label for="tR">Repeats</label><select id="tR">${REPEAT_OPTIONS(true, t.repeat)}</select></div></div>
+   <p class="small">A repeating to-do moves to its next date when it's ticked.</p>
    <div class="acts"><button data-act="delete">Delete</button><button data-act="cancel">Cancel</button><button class="pri" data-act="save">Save</button></div>`, mode => {
     if (mode === "delete") return D.deleteTodo(id);
     if (!val("tT")) { sheet.msg("Type what needs doing."); return false; }
-    D.saveTodo({ ...t, text: val("tT"), due: val("tD") });
+    const rep = $("tR").value;
+    D.saveTodo({ ...t, text: val("tT"), due: val("tD") || (rep ? btk() : ""), repeat: rep, done: rep ? false : t.done });
   });
 }
 
@@ -230,7 +277,9 @@ $("famForm").addEventListener("submit", e => {
 });
 document.addEventListener("change", e => {
   const id = e.target.dataset && e.target.dataset.tick; if (!id) return;
-  const t = S.todos.find(x => x.id === id); if (t) D.saveTodo({ ...t, done: e.target.checked, doneAt: e.target.checked ? new Date().toISOString() : null });
+  const t = S.todos.find(x => x.id === id); if (!t) return;
+  const r = tickTodo(t, e.target.checked, btk()); D.saveTodo(r.todo);
+  if (r.next) toast(`Done. Next time: ${prettyDate(r.next).long}`);
 });
 $("addAppt").addEventListener("click", () => apptSheet(null));
 $("addCheck").addEventListener("click", () => checkSheet(null));
