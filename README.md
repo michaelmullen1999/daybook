@@ -30,6 +30,14 @@ The home-screen app has its own sign-in, so she must sign in from the home-scree
 ## On a PC (Nicole, Levi)
 Open the same link in Chrome or Edge and sign in with Google. Bookmark it. Chrome and Edge can also install it as an app, from the install icon in the address bar.
 
+## TV calendar
+A separate screen for the TV, at **https://michaelmullen1999.github.io/daybook/tv**. It shows Brian's week, Sunday to Saturday. Each finished day gets a red X. Alongside are today's appointments and tasks, with pills and insulin ticked when Deborah logs them.
+
+- **Read-only.** Deborah's app is the master: everything is added and changed there, and the TV updates by itself.
+- **To connect it:** open the TV link in the TV's browser (a Fire TV Stick's Silk browser works well). It shows a 6-letter code. In Daybook, go to **Setup → Connect a TV** and type the code.
+- It dims from 10 pm to 6 am, shifts a few pixels now and then to protect the screen, and reloads itself at 3 am to pick up updates.
+- It never shows notes, the diary or care info.
+
 ## Reminders
 It shows what's due and what was missed whenever it's open. It can't alert her when it's closed. Keep phone alarms for the key times, or ask for push reminders to be added. That needs Firebase's pay-as-you-go plan, about pennies a month.
 

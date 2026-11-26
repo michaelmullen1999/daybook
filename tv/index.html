@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Brian's week</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:#fff;overflow:hidden;cursor:none}
+body{font-family:"Atkinson Hyperlegible",Verdana,sans-serif;color:#111a22}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center center}
+#night{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 2s}
+.screen{width:1920px;height:1080px;padding:48px 56px;display:flex;gap:40px}
+.left{flex:1 1 auto;display:flex;flex-direction:column;gap:20px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:24px}
+.top h1{margin:0;font-size:56px;line-height:1.05}
+.top p{margin:0;font-size:30px;color:#566572}
+.week{flex:1 1 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:14px}
+.day{position:relative;border-radius:20px;padding:20px 12px;display:flex;flex-direction:column;gap:14px;overflow:hidden;background:#fff;border:2px solid #dbe3ea}
+.day.done{background:#f7f8fa}.day.done .nm,.day.done .num,.day.done .what{color:#8a96a0}
+.day.today{background:#eaf1fc;border:4px solid #1f5fd1}
+.nm{font-size:22px;font-weight:700}
+.num{font-size:64px;font-weight:700;line-height:1}
+.badge{align-self:flex-start;margin-top:8px;background:#1f5fd1;color:#fff;font-size:20px;font-weight:700;border-radius:999px;padding:4px 14px}
+.it{display:flex;flex-direction:column;gap:2px;border-top:2px solid #dbe3ea;padding-top:10px}
+.tm{font-size:21px;font-weight:700;color:#1f5fd1}
+.what{font-size:21px;line-height:1.25;hyphens:auto}
+.more{font-size:20px;color:#566572}
+.x{position:absolute;inset:14px;width:calc(100% - 28px);height:calc(100% - 28px)}
+.x path{stroke:#d22f27;stroke-width:18px;stroke-linecap:round;fill:none}
+.foot{margin:0;font-size:18px;color:#566572}
+.right{flex:0 0 520px;background:#f3f6f9;border-radius:28px;padding:40px 40px 32px;display:flex;flex-direction:column;gap:22px;overflow:hidden}
+.right h2{margin:0;font-size:32px}
+.big1{margin:0;font-size:34px;font-weight:700}.big2{margin:0;font-size:34px;color:#3d4a55}
+.clock{margin:10px 0 0;font-size:104px;font-weight:700;line-height:1;white-space:nowrap}
+.part{margin:6px 0 0;font-size:26px;color:#566572}
+.appt{background:#fff;border-radius:16px;padding:16px 20px;display:flex;gap:18px;align-items:baseline}
+.appt .tm{font-size:26px;white-space:nowrap}.appt .what{font-size:26px}
+.none{font-size:24px;color:#566572;margin:0}
+.task{display:flex;align-items:center;gap:16px;font-size:26px;padding:6px 0;border-bottom:2px solid #dbe3ea}
+.box{flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;background:#fff;border:3px solid #8a96a0}
+.task.done .box{background:#1f8a4c;border:2px solid #1f8a4c}
+.task .tw{flex:1 1 auto;font-weight:700}.task.done .tw{color:#566572}
+.task .tt{font-size:22px;color:#566572;white-space:nowrap}
+.love{margin:auto 0 0;text-align:center;font-size:24px;color:#566572}
+.pair{width:1920px;height:1080px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;text-align:center}
+.pair h1{font-size:64px;margin:0}.pair p{font-size:32px;margin:0;color:#3d4a55}
+.code{font-size:180px;font-weight:700;letter-spacing:.12em;color:#1f5fd1}
+.status{position:absolute;right:24px;bottom:12px;font-size:16px;color:#8a96a0}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="night"></div>
+<script src="app.js"></script>
+</body>
+</html>

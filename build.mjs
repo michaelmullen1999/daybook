@@ -22,6 +22,11 @@ await esbuild.build({ ...opts, entryPoints: ["src/brian.js"], outfile: mock ? "t
 if (!mock) { mkdirSync(`${out}/me`, { recursive: true }); cpSync("www", `${out}/me`, { recursive: true }); }
 else { for (const f of ["index.html", "style.css", "fonts.css", "fonts"]) cpSync(`www/${f}`, `test/me/${f}`, { recursive: true }); }
 await esbuild.build({ ...opts, entryPoints: ["src/family.js"], outfile: `${out}/app.js` });
+// TV calendar
+mkdirSync(`${out}/tv`, { recursive: true });
+await esbuild.build({ ...opts, entryPoints: ["src/tv.js"], outfile: `${out}/tv/app.js` });
+cpSync("tv/index.html", `${out}/tv/index.html`);
+for (const f of ["fonts.css", "fonts"]) cpSync(`www/${f}`, `${out}/tv/${f}`, { recursive: true });
 cpSync("family/index.html", `${out}/index.html`);
 for (const f of ["manifest.webmanifest", "sw.js", "icons"]) cpSync(`family/${f}`, `${out}/${f}`, { recursive: true });
 for (const f of ["style.css", "fonts.css", "fonts"]) cpSync(`www/${f}`, `${out}/${f}`, { recursive: true });
@@ -29,7 +34,7 @@ writeFileSync(`${out}/.nojekyll`, "");
 writeFileSync(`${out}/version.json`, JSON.stringify({ version: APP_VERSION }));
 // cache-busting: make browsers load the newest files after each update
 const v = Date.now().toString(36);
-for (const p of [`${out}/index.html`, `${out}/me/index.html`]) {
+for (const p of [`${out}/index.html`, `${out}/me/index.html`, `${out}/tv/index.html`]) {
   if (!existsSync(p)) continue;
   writeFileSync(p, readFileSync(p, "utf8").replace(/(href|src)="(app\.js|style\.css|fonts\.css)"/g, `$1="$2?v=${v}"`));
 }

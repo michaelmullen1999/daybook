@@ -114,6 +114,12 @@
 <section class="tab" id="t-setup">
   <h2>Reminders on this device</h2>
   <div id="pushBox"></div>
+  <h2>Connect a TV</h2>
+  <p class="small">On the TV's web browser, open <b>michaelmullen1999.github.io/daybook/tv</b>. It shows a 6-letter code. Type it here.</p>
+  <form id="devForm"><div class="two"><div><label class="small" for="devCode">Code</label><input id="devCode" placeholder="K7Q-4MX" autocomplete="off" autocapitalize="characters"></div>
+    <div><label class="small" for="devName">Name (optional)</label><input id="devName" placeholder="Living room TV"></div></div>
+    <div class="row-btns"><button class="pri">Connect TV</button></div><p class="err" id="devMsg"></p></form>
+  <div id="devList"></div>
   <h2>Pills, insulin and checks</h2>
   <p class="small">What Brian takes or checks, and when (Portland time). "Warn within" stops a dose being logged twice by mistake.</p>
   <div id="checkList"></div>

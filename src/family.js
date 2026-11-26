@@ -6,7 +6,7 @@ themeSwitch();
 import { initCare } from "./care.js";
 import { pandaFace, pandaWave, pandaHeart, emptyPanda } from "./panda.js";
 
-const S = { settings: null, appts: [], logs: [], hobbies: [], todos: [], family: [], notes: [], care: [], diary: [], photos: [] };
+const S = { settings: null, appts: [], logs: [], hobbies: [], todos: [], family: [], notes: [], care: [], diary: [], photos: [], devices: [] };
 const sheet = makeSheet();
 const unsubs = [];
 let user = null;
@@ -38,7 +38,7 @@ D.onUser(u => {
     if (String(err.code).includes("permission")) return showNotAllowed();
     $("problem").textContent = "Can't reach the Daybook right now. Check your connection."; $("problem").hidden = false;
   };
-  ["settings", "appts", "logs", "todos", "family", "notes", "care", "diary", "photos"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; $("problem").hidden = true; if (!$("gate").hidden && n === "settings") { $("gate").hidden = true; $("gateExtras").hidden = true; $("app").hidden = false; } renderAll(); }, onErr)));
+  ["settings", "appts", "logs", "todos", "family", "notes", "care", "diary", "photos", "devices"].forEach(n => unsubs.push(D.watch(n, data => { S[n] = data; $("problem").hidden = true; if (!$("gate").hidden && n === "settings") { $("gate").hidden = true; $("gateExtras").hidden = true; $("app").hidden = false; } renderAll(); }, onErr)));
   renderAll();
 });
 
@@ -260,7 +260,11 @@ function renderHobbies() {
   $("hobList").innerHTML = list.length ? list.map(h => `<div class="hob"><div class="row"><span class="t">${esc(h.name)}</span><span class="small">${h.last ? "Last done " + esc(ago(Date.now() - new Date(h.last))) : "Not logged yet"}</span></div>${h.note ? `<p style="margin:8px 0 0">${esc(h.note)}</p>` : ""}</div>`).join("") : `<p class="empty">No hobbies added yet.</p>`;
 }
 
+function renderDevices() {
+  $("devList").innerHTML = S.devices.length ? S.devices.map(d => `<div class="item"><div><div class="t">${esc(d.name || "TV")}</div><div class="s">Connected ${d.added ? esc(ago(Date.now() - new Date(d.added))) : ""}${d.by ? " by " + esc(d.by) : ""}</div></div><button data-devdel="${esc(d.id)}">Disconnect</button></div>`).join("") : "";
+}
 function renderPeople() {
+  renderDevices();
   const fam = [...OWNERS.map(e => ({ id: e, owner: true })), ...S.family.filter(f => !OWNERS.includes(f.id))];
   $("famList").innerHTML = fam.map(f => `<div class="item"><div><div class="t" style="font-size:18px;overflow-wrap:anywhere">${esc(f.id)}</div><div class="s">${f.owner ? "Owner" : f.by ? "Added by " + esc(f.by) : ""}</div></div>${f.owner || (user && f.id === (user.email || "").toLowerCase()) ? "<span></span>" : `<button data-famdel="${esc(f.id)}">Remove</button>`}</div>`).join("");
 }
@@ -349,7 +353,18 @@ document.addEventListener("click", e => {
   else if (d.echeck) checkSheet(d.echeck);
   else if (d.tedit) todoSheet(d.tedit);
   else if (d.ldel) { if (b.textContent !== "Sure?") { b.textContent = "Sure?"; return; } D.deleteLog(d.ldel); }
+  else if (d.devdel) { if (b.textContent !== "Tap again to disconnect") { b.textContent = "Tap again to disconnect"; return; } D.removeDevice(d.devdel); toast("Disconnected"); }
   else if (d.famdel) { if (b.textContent !== "Tap again to remove") { b.textContent = "Tap again to remove"; return; } D.removeFamily(d.famdel); toast("Removed"); }
+});
+$("devForm").addEventListener("submit", async e => {
+  e.preventDefault(); $("devMsg").textContent = "";
+  const code = val("devCode").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (code.length !== 6) { $("devMsg").textContent = "The code has 6 letters and numbers, like K7Q-4MX."; return; }
+  try {
+    const ok = await D.connectDevice(code, val("devName") || "TV", me());
+    if (ok) { $("devCode").value = ""; $("devName").value = ""; toast("Connected. The TV shows the calendar now."); }
+    else $("devMsg").textContent = "No screen is showing that code. Check it and try again.";
+  } catch (err) { console.error(err); $("devMsg").textContent = "That didn't work. Check your connection and try again."; }
 });
 $("famForm").addEventListener("submit", e => {
   e.preventDefault(); const em = val("famEmail").toLowerCase();
