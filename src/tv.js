@@ -43,6 +43,46 @@ else {
   });
 }
 
+/* ---------- weather (Beaverton, Fahrenheit) from Open-Meteo: free, no key ---------- */
+const WX_URL = "https://api.open-meteo.com/v1/forecast?latitude=45.4871&longitude=-122.8037&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=7";
+let WX = null;
+try { WX = JSON.parse(localStorage.getItem("daybook-tv-wx") || "null"); } catch {}
+async function loadWeather() {
+  try {
+    const r = await fetch(WX_URL, { cache: "no-store" }); if (!r.ok) return;
+    const j = await r.json(); if (!j.current || !j.daily) return;
+    WX = { at: Date.now(), now: j.current, daily: j.daily };
+    try { localStorage.setItem("daybook-tv-wx", JSON.stringify(WX)); } catch {}
+    render();
+  } catch {}
+}
+loadWeather(); setInterval(loadWeather, 20 * 60 * 1000);
+// WMO weather codes -> words and an icon
+function wxInfo(code) {
+  const c = +code;
+  if (c === 0) return ["Clear", "sun"]; if (c === 1) return ["Mostly clear", "sun"]; if (c === 2) return ["Partly cloudy", "part"]; if (c === 3) return ["Cloudy", "cloud"];
+  if (c === 45 || c === 48) return ["Fog", "fog"];
+  if (c >= 51 && c <= 57) return [c === 51 ? "Light drizzle" : c === 55 ? "Heavy drizzle" : c >= 56 ? "Freezing drizzle" : "Drizzle", "rain"];
+  if (c >= 61 && c <= 67) return [c === 61 ? "Light rain" : c === 65 ? "Heavy rain" : c >= 66 ? "Freezing rain" : "Rain", "rain"];
+  if (c >= 71 && c <= 77) return [c === 71 ? "Light snow" : c === 75 ? "Heavy snow" : "Snow", "snow"];
+  if (c >= 80 && c <= 82) return [c === 82 ? "Heavy showers" : "Showers", "rain"];
+  if (c === 85 || c === 86) return ["Snow showers", "snow"];
+  if (c >= 95) return ["Thunderstorm", "storm"];
+  return ["", "cloud"];
+}
+function wxIcon(kind, size, night) {
+  const sun = `<circle cx="24" cy="24" r="9" fill="#f2b01e"/><g stroke="#f2b01e" stroke-width="3" stroke-linecap="round"><path d="M24 4v6M24 38v6M4 24h6M38 24h6M10 10l4 4M34 34l4 4M38 10l-4 4M14 34l-4 4"/></g>`;
+  const moon = `<path d="M30 8a16 16 0 1 0 10 26A13 13 0 0 1 30 8z" fill="#8a96a0"/>`;
+  const cloud = (x = 0, y = 0, f = "#c9d3dc") => `<path transform="translate(${x} ${y})" d="M14 38h22a9 9 0 0 0 0-18 12 12 0 0 0-23-2A8 8 0 0 0 14 38z" fill="${f}" stroke="#7d8b97" stroke-width="2"/>`;
+  const body = { sun: night ? moon : sun, part: `<g transform="translate(-6 -6) scale(.8)">${night ? moon : sun}</g>${cloud(2, 4)}`, cloud: cloud(),
+    fog: `${cloud(0, -6)}<g stroke="#7d8b97" stroke-width="3" stroke-linecap="round"><path d="M8 40h32M12 46h24"/></g>`,
+    rain: `${cloud(0, -6)}<g stroke="#1f5fd1" stroke-width="3" stroke-linecap="round"><path d="M16 38l-3 7M25 38l-3 7M34 38l-3 7"/></g>`,
+    snow: `${cloud(0, -6)}<g fill="#1f5fd1"><circle cx="15" cy="41" r="2.5"/><circle cx="24" cy="44" r="2.5"/><circle cx="33" cy="41" r="2.5"/></g>`,
+    storm: `${cloud(0, -6)}<path d="M25 32l-6 10h6l-4 8 10-12h-6l4-6z" fill="#f2b01e"/>` }[kind] || cloud();
+  return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" aria-hidden="true" style="flex:none">${body}</svg>`;
+}
+const wxDay = k => { if (!WX) return null; const i = WX.daily.time.indexOf(k); return i < 0 ? null : { code: WX.daily.weather_code[i], hi: Math.round(WX.daily.temperature_2m_max[i]), lo: Math.round(WX.daily.temperature_2m_min[i]) }; };
+
 /* ---------- the calendar ---------- */
 const checks = () => (S.settings && Array.isArray(S.settings.checks)) ? S.settings.checks : [];
 const partOfDay = h => h < 5 ? "Night" : h < 12 ? "Morning" : h < 17 ? "Afternoon" : h < 21 ? "Evening" : "Night";
@@ -60,7 +100,8 @@ function render() {
   const cell = k => {
     const items = dayItems(k), shown = items.slice(0, 5), done = k < tk, today = k === tk;
     return `<div class="day ${done ? "done" : ""} ${today ? "today" : ""}">
-      <div style="display:flex;flex-direction:column;gap:2px"><span class="nm">${DAYS[weekdayOf(k)]}</span><span class="num">${+k.slice(8)}</span>${today ? `<span class="badge">Today</span>` : ""}</div>
+      <div style="display:flex;flex-direction:column;gap:2px"><span class="nm">${DAYS[weekdayOf(k)]}</span><span class="num">${+k.slice(8)}</span>${today ? `<span class="badge">Today</span>` : ""}
+        ${!done && wxDay(k) ? (f => `<span class="fc" title="${esc(wxInfo(f.code)[0])}">${wxIcon(wxInfo(f.code)[1], 30)}<span>${f.hi}° / ${f.lo}°</span></span>`)(wxDay(k)) : ""}</div>
       ${shown.map(i => `<div class="it"><span class="tm">${esc(i.tm)}</span><span class="what">${esc(i.what)}</span></div>`).join("")}
       ${items.length > shown.length ? `<span class="more">+${items.length - shown.length} more</span>` : ""}
       ${done ? `<svg class="x" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M8 8 L92 92 M92 8 L8 92" vector-effect="non-scaling-stroke"/></svg>` : ""}</div>`;
@@ -74,7 +115,9 @@ function render() {
   const todayAppts = dayItems(tk).filter(i => i.tm !== "To do");
   stage.innerHTML = `<div class="screen">
     <div class="left">
-      <div class="top"><h1>${esc(name)}'s week</h1><p>${esc(monthDay(sun))} – ${esc(monthDay(days[6]))}</p></div>
+      <div class="top"><div><h1>${esc(name)}'s week</h1><p>${esc(monthDay(sun))} – ${esc(monthDay(days[6]))}</p></div>
+        ${WX && Date.now() - WX.at < 6 * 3600e3 ? (() => { const [txt, kind] = wxInfo(WX.now.weather_code), d = wxDay(tk), night = w.h >= 18 || w.h < 7;
+          return `<div class="wx">${wxIcon(kind, 72, night)}<span class="wxt">${Math.round(WX.now.temperature_2m)}°F</span><span class="wxd"><b>${esc(txt)}</b>${d ? `<br>High ${d.hi}° · Low ${d.lo}°` : ""}<br><span class="wxp">Beaverton</span></span></div>`; })() : ""}</div>
       <div class="week">${days.map(cell).join("")}</div>
     </div>
     <div class="right">
